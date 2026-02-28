@@ -51,6 +51,11 @@ class DatabaseService {
     ''');
   }
 
+  Future<void> saveTeam(Team team) async {
+    final db = await instance.database;
+    await db.insert('teams', team.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
   Future<List<Team>> getAllTeams() async {
     final db = await instance.database;
     final result = await db.query('teams');

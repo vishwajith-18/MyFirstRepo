@@ -147,6 +147,10 @@ class MatchNotifier extends StateNotifier<MatchState> {
   void setLastManSolo(bool solo) {
     state = state.copyWith(isLastManSolo: solo);
   }
+
+  void _checkInningsEnd() {
+    // TODO: Implement actual innings end logic
+  }
 }
 
 final matchProvider = StateNotifierProvider<MatchNotifier, MatchState>((ref) => MatchNotifier());

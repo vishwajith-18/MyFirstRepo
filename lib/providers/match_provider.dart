@@ -97,9 +97,8 @@ class MatchNotifier extends StateNotifier<MatchState> {
 
     bool isLegal = !isWide && !isNoBall;
     
-    // Rotate for odd runs on legal ball or wide/noball (if specified)
-    // Common rule: rotated on 1, 3, 5 runs
-    if ((runs % 2 != 0) && !isWide) {
+    // Rotate for odd runs on legal ball (or no-balls if runs were scored)
+    if ((runs % 2 != 0)) {
        final temp = newStriker;
        newStriker = newNonStriker;
        newNonStriker = temp;
@@ -116,6 +115,18 @@ class MatchNotifier extends StateNotifier<MatchState> {
       newNonStriker = temp;
     }
 
+    // Wicket Handling
+    if (wicket != null) {
+      if (wicket == WicketType.runOut) {
+        // Run out logic: UI will tell us who got out
+        // For simplicity, we clear the fielder/player who got out if needed
+        // but typically the UI just asks for the new batsman to replace the one who left
+      } else {
+        // Bowled, Caught, etc. - Striker is OUT
+        newStriker = ''; 
+      }
+    }
+
     state = state.copyWith(
       currentInningsBalls: updatedBalls,
       strikerId: newStriker,
@@ -123,7 +134,6 @@ class MatchNotifier extends StateNotifier<MatchState> {
       history: updatedHistory,
     );
 
-    // Save periodically or check for innings end
     _checkInningsEnd();
   }
 
@@ -133,7 +143,35 @@ class MatchNotifier extends StateNotifier<MatchState> {
   }
 
   void endInnings() {
-    state = state.copyWith(isInnings1: false, currentInningsBalls: [], strikerId: '', nonStrikerId: '', currentBowlerId: '');
+    if (state.currentMatch == null) return;
+    
+    final battingTeam = state.isInnings1 
+        ? (state.currentMatch!.tossWinnerBatsFirst ? state.currentMatch!.teamA : state.currentMatch!.teamB)
+        : (state.currentMatch!.tossWinnerBatsFirst ? state.currentMatch!.teamB : state.currentMatch!.teamA);
+
+    final finishedInnings = Innings(
+      balls: state.currentInningsBalls,
+      playerIds: battingTeam.players.map((p) => p.id).toList(),
+      maxOvers: state.currentMatch!.maxOvers,
+    );
+
+    final updatedMatch = state.currentMatch!.copyWith(
+      innings1: state.isInnings1 ? finishedInnings : state.currentMatch!.innings1,
+      innings2: !state.isInnings1 ? finishedInnings : state.currentMatch!.innings2,
+    );
+
+    state = state.copyWith(
+      currentMatch: updatedMatch,
+      isInnings1: false, 
+      currentInningsBalls: [], 
+      strikerId: '', 
+      nonStrikerId: '', 
+      currentBowlerId: '',
+      isLastManSolo: false,
+    );
+
+    // Save to DB
+    DatabaseService.instance.saveMatch(updatedMatch);
   }
 
   void undo() {
@@ -149,7 +187,37 @@ class MatchNotifier extends StateNotifier<MatchState> {
   }
 
   void _checkInningsEnd() {
-    // TODO: Implement actual innings end logic
+    if (state.currentMatch == null) return;
+
+    final battingTeam = state.isInnings1 
+        ? (state.currentMatch!.tossWinnerBatsFirst ? state.currentMatch!.teamA : state.currentMatch!.teamB)
+        : (state.currentMatch!.tossWinnerBatsFirst ? state.currentMatch!.teamB : state.currentMatch!.teamA);
+
+    int totalWickets = state.currentInningsBalls.where((b) => b.wicket != null).length;
+    int legalBalls = state.currentInningsBalls.where((b) => !b.isWide && !b.isNoBall).length;
+    int maxBalls = state.currentMatch!.maxOvers * 6;
+
+    // All Out or Overs Finished
+    bool inningsFinished = (totalWickets >= battingTeam.players.length - 1 && !state.isLastManSolo) || 
+                          (totalWickets >= battingTeam.players.length && state.isLastManSolo) ||
+                          (legalBalls >= maxBalls);
+
+    if (state.isInnings1) {
+      if (inningsFinished) {
+        endInnings();
+      }
+    } else {
+      // Innings 2: Chasing logic
+      final i1Balls = state.currentMatch!.innings1?.balls ?? [];
+      int target = i1Balls.fold(0, (sum, b) => sum + b.runs + (b.isWide || b.isNoBall ? 1 : 0)) + 1;
+      
+      int currentScore = state.currentInningsBalls.fold(0, (sum, b) => sum + b.runs + (b.isWide || b.isNoBall ? 1 : 0));
+
+      if (currentScore >= target || inningsFinished) {
+        // Match Finished!
+        // TODO: Update database with final score
+      }
+    }
   }
 }
 

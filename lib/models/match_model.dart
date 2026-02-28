@@ -71,4 +71,21 @@ class Match {
     'innings2_json': innings2 != null ? jsonEncode(innings2!.toMap()) : null,
     'date': date.toIso8601String(),
   };
+
+  Match copyWith({
+    Innings? innings1,
+    Innings? innings2,
+  }) {
+    return Match(
+      id: id,
+      teamA: teamA,
+      teamB: teamB,
+      maxOvers: maxOvers,
+      tossWinnerId: tossWinnerId,
+      tossWinnerBatsFirst: tossWinnerBatsFirst,
+      innings1: innings1 ?? this.innings1,
+      innings2: innings2 ?? this.innings2,
+      date: date,
+    );
+  }
 }

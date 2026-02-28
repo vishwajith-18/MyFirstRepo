@@ -26,6 +26,16 @@
           ];
           manager = "flutter";
         };
+        android = {
+          command = [
+            "flutter"
+            "run"
+            "--machine"
+            "-d"
+            "android"
+          ];
+          manager = "flutter";
+        };
       };
     };
   };

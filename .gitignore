@@ -48,4 +48,4 @@ ios/Runner/GeneratedPluginRegistrant.*
 ServiceDefinitions.json
 
 # Web-specific
-web/index.html
+# web/index.html

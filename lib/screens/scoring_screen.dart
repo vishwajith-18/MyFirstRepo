@@ -182,7 +182,7 @@ class ScoringScreen extends ConsumerWidget {
       builder: (c) => Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
-          shrink_wrap: true,
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Text('Wicket Type', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),

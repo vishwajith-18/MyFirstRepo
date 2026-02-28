@@ -25,7 +25,7 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      app_bar: AppBar(title: const Text('Add New Team')),
+      appBar: AppBar(title: const Text('Add New Team')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

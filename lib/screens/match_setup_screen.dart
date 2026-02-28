@@ -25,7 +25,7 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
     final teams = ref.watch(teamProvider);
 
     return Scaffold(
-      app_bar: AppBar(title: const Text('Match Setup')),
+      appBar: AppBar(title: const Text('Match Setup')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(

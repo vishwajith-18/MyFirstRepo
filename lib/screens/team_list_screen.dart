@@ -12,7 +12,7 @@ class TeamListScreen extends ConsumerWidget {
     final teams = ref.watch(teamProvider);
 
     return Scaffold(
-      app_bar: AppBar(title: const Text('Teams')),
+      appBar: AppBar(title: const Text('Teams')),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const AddTeamScreen())),
         child: const Icon(Icons.add),

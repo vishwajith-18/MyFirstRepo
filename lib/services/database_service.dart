@@ -1,4 +1,4 @@
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite/sqflite.dart' if (dart.library.js_interop) 'web_db_stub.dart';
 import 'package:path/path.dart';
 import '../models/models.dart';
 import '../models/match_model.dart';

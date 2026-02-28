@@ -21,7 +21,7 @@ class Team {
   Map<String, dynamic> toMap() => {
         'id': id,
         'name': name,
-        'players': jsonEncode(players.map((p) => p.toMap()).toList()),
+        'players_json': jsonEncode(players.map((p) => p.toMap()).toList()),
       };
 
   factory Team.fromMap(Map<String, dynamic> map) {

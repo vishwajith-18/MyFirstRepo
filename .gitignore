@@ -1,0 +1,51 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configurations and settings for VS Code.
+.vscode/
+
+# Flutter/Dart-specific
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+
+# Android-specific
+android/app/key.properties
+android/app/src/main/res/raw/
+android/app/src/main/res/values/strings.xml
+android/local.properties
+android/vish_cric.iml
+android/.gradle/
+android/app/debug/
+android/app/release/
+
+# iOS-specific
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Pods/
+ios/.symlinks/
+ios/Flash/Settings.bundle/Root.plist
+ios/Runner/GeneratedPluginRegistrant.*
+ServiceDefinitions.json
+
+# Web-specific
+web/index.html

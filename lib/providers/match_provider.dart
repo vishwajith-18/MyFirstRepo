@@ -133,7 +133,7 @@ class MatchNotifier extends StateNotifier<MatchState> {
   }
 
   void endInnings() {
-    // Logic to switch to innings 2 or end match
+    state = state.copyWith(isInnings1: false, currentInningsBalls: [], strikerId: '', nonStrikerId: '', currentBowlerId: '');
   }
 
   void undo() {
@@ -144,11 +144,6 @@ class MatchNotifier extends StateNotifier<MatchState> {
     }
   }
 
-  void _checkInningsEnd() {
-    // Logic for innings end (overs complete, all out, target reached)
-    // This will be triggered in the UI or here
-  }
-  
   void setLastManSolo(bool solo) {
     state = state.copyWith(isLastManSolo: solo);
   }

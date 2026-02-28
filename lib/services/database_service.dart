@@ -51,19 +51,12 @@ class DatabaseService {
     ''');
   }
 
-  // Team Operations
-  Future<void> saveTeam(Team team) async {
-    final db = await instance.database;
-    await db.insert('teams', team.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
-  }
-
   Future<List<Team>> getAllTeams() async {
     final db = await instance.database;
     final result = await db.query('teams');
     return result.map((json) => Team.fromMap(json)).toList();
   }
 
-  // Match Operations
   Future<void> saveMatch(Match match) async {
     final db = await instance.database;
     await db.insert('matches', match.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
@@ -72,9 +65,6 @@ class DatabaseService {
   Future<List<Match>> getRecentMatches({int limit = 5}) async {
     final db = await instance.database;
     final result = await db.query('matches', orderBy: 'date DESC', limit: limit);
-    
-    // Note: This requires joining with teams or fetching teams separately.
-    // For simplicity in this local-only app, we'll fetch all teams and map them.
     final teams = await getAllTeams();
     final teamMap = {for (var t in teams) t.id: t};
 

@@ -31,17 +31,23 @@ class ScoringScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          _buildScoreboard(state),
-          _buildPlayerSelectors(state, battingTeam, bowlingTeam, ref),
+          ScoreboardView(state: state),
+          PlayerSelectionView(state: state, battingTeam: battingTeam, bowlingTeam: bowlingTeam),
           const Divider(),
-          _buildScoringButtons(ref),
-          _buildExtraButtons(ref, context),
+          Expanded(child: ScoringControlPanel()),
         ],
       ),
     );
   }
 
-  Widget _buildScoreboard(MatchState state) {
+}
+
+class ScoreboardView extends StatelessWidget {
+  final MatchState state;
+  const ScoreboardView({super.key, required this.state});
+
+  @override
+  Widget build(BuildContext context) {
     int runs = state.currentInningsBalls.fold(0, (sum, b) => sum + b.runs + (b.isWide || b.isNoBall ? 1 : 0));
     int wickets = state.currentInningsBalls.where((b) => b.wicket != null).length;
     int legalBalls = state.currentInningsBalls.where((b) => !b.isWide && !b.isNoBall).length;
@@ -71,8 +77,22 @@ class ScoringScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _buildPlayerSelectors(MatchState state, Team batting, Team bowling, WidgetRef ref) {
+class PlayerSelectionView extends ConsumerWidget {
+  final MatchState state;
+  final Team battingTeam;
+  final Team bowlingTeam;
+
+  const PlayerSelectionView({
+    super.key,
+    required this.state,
+    required this.battingTeam,
+    required this.bowlingTeam,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -83,7 +103,7 @@ class ScoringScreen extends ConsumerWidget {
                 child: DropdownButtonFormField<String>(
                   value: state.strikerId.isEmpty ? null : state.strikerId,
                   decoration: const InputDecoration(labelText: 'Striker'),
-                  items: batting.players.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
+                  items: battingTeam.players.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
                   onChanged: (v) => ref.read(matchProvider.notifier).setupPlayers(v!, state.nonStrikerId, state.currentBowlerId),
                 ),
               ),
@@ -92,7 +112,7 @@ class ScoringScreen extends ConsumerWidget {
                 child: DropdownButtonFormField<String>(
                   value: state.nonStrikerId.isEmpty ? null : state.nonStrikerId,
                   decoration: const InputDecoration(labelText: 'Non-Striker'),
-                  items: batting.players.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
+                  items: battingTeam.players.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
                   onChanged: (v) => ref.read(matchProvider.notifier).setupPlayers(state.strikerId, v!, state.currentBowlerId),
                 ),
               ),
@@ -102,57 +122,74 @@ class ScoringScreen extends ConsumerWidget {
           DropdownButtonFormField<String>(
             value: state.currentBowlerId.isEmpty ? null : state.currentBowlerId,
             decoration: const InputDecoration(labelText: 'Bowler'),
-            items: bowling.players.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
+            items: bowlingTeam.players.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
             onChanged: (v) => ref.read(matchProvider.notifier).setupPlayers(state.strikerId, state.nonStrikerId, v!),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildScoringButtons(WidgetRef ref) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: [0, 1, 2, 3, 4, 6].map((run) {
-          return SizedBox(
-            width: 80,
-            height: 80,
-            child: ElevatedButton(
-              onPressed: () => ref.read(matchProvider.notifier).recordBall(runs: run),
-              child: Text('$run', style: const TextStyle(fontSize: 24)),
+class ScoringControlPanel extends ConsumerWidget {
+  const ScoringControlPanel({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
+              children: [0, 1, 2, 3, 4, 6].map((run) {
+                return SizedBox(
+                  width: 80,
+                  height: 80,
+                  child: ElevatedButton(
+                    onPressed: () => ref.read(matchProvider.notifier).recordBall(runs: run),
+                    child: Text('$run', style: const TextStyle(fontSize: 24)),
+                  ),
+                );
+              }).toList(),
             ),
-          );
-        }).toList(),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _actionButton(
+                  'WIDE',
+                  Colors.orange.shade900,
+                  () => ref.read(matchProvider.notifier).recordBall(runs: 0, isWide: true),
+                ),
+                _actionButton(
+                  'NO BALL',
+                  Colors.deepOrange.shade900,
+                  () => _showNoBallPopup(ref, context),
+                ),
+                _actionButton(
+                  'WICKET',
+                  Colors.red.shade900,
+                  () => _showWicketPopup(ref, context),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildExtraButtons(WidgetRef ref, BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          ElevatedButton(
-            onPressed: () => ref.read(matchProvider.notifier).recordBall(runs: 0, isWide: true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade900),
-            child: const Text('WIDE'),
-          ),
-          ElevatedButton(
-            onPressed: () => _showNoBallPopup(ref, context),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange.shade900),
-            child: const Text('NO BALL'),
-          ),
-          ElevatedButton(
-            onPressed: () => _showWicketPopup(ref, context),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade900),
-            child: const Text('WICKET'),
-          ),
-        ],
-      ),
+  Widget _actionButton(String label, Color color, VoidCallback onPressed) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(backgroundColor: color, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+      child: Text(label),
     );
   }
 
@@ -176,7 +213,6 @@ class ScoringScreen extends ConsumerWidget {
   }
 
   void _showWicketPopup(WidgetRef ref, BuildContext context) {
-    // Simplified wicket selection
     showModalBottomSheet(
       context: context,
       builder: (c) => Padding(
@@ -208,8 +244,7 @@ class ScoringScreen extends ConsumerWidget {
   void _checkForLastMan(WidgetRef ref, BuildContext context) {
     final state = ref.read(matchProvider);
     final match = state.currentMatch!;
-    final battingTeam = state.isInnings1 ? match.teamA : match.teamB; // Simple logic for demo
-
+    final battingTeam = state.isInnings1 ? match.teamA : match.teamB;
     if (ref.read(matchProvider.notifier).shouldPromptLastMan(battingTeam)) {
       showDialog(
         context: context,
@@ -228,7 +263,7 @@ class ScoringScreen extends ConsumerWidget {
               onPressed: () {
                 ref.read(matchProvider.notifier).endInnings();
                 Navigator.pop(c);
-                Navigator.pop(context); // Go back from scoring
+                Navigator.pop(context);
               },
               child: const Text('NO (End Innings)'),
             ),

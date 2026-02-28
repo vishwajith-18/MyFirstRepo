@@ -17,7 +17,7 @@ class HomeScreen extends StatelessWidget {
             const Icon(Icons.sports_cricket, size: 80, color: Colors.blueAccent),
             const SizedBox(height: 16),
             const Text(
-              'CricScorer',
+              'VISH_CRIC',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
             ),

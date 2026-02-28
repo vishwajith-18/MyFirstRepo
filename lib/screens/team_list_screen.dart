@@ -36,7 +36,7 @@ class TeamListScreen extends ConsumerWidget {
                 );
               },
             ),
-      bottom_navigation_bar: teams.length >= 2
+      bottomNavigationBar: teams.length >= 2
           ? Padding(
               padding: const EdgeInsets.all(16.0),
               child: ElevatedButton(

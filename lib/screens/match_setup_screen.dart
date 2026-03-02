@@ -17,8 +17,8 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
   String? teamAId;
   String? teamBId;
   String? tossWinnerId;
-  bool teamABatsFirst = true;
-  int overs = 5;
+  bool? tossWinnerChoseBat;
+  int? overs;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +40,7 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
             DropdownButtonFormField<String>(
               value: teamBId,
               decoration: const InputDecoration(labelText: 'Team B'),
-              items: teams.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+              items: teams.where((t) => t.id != teamAId).map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
               onChanged: (v) => setState(() => teamBId = v),
             ),
             const SizedBox(height: 24),
@@ -59,39 +59,57 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
                 onChanged: (v) => setState(() => tossWinnerId = v),
               ),
               const SizedBox(height: 16),
-              SwitchListTile(
-                title: const Text('Winner Bats First?'),
-                value: teamABatsFirst,
-                onChanged: (v) => setState(() => teamABatsFirst = v),
+              const Text('Decision', style: TextStyle(fontWeight: FontWeight.bold)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: tossWinnerChoseBat == true ? Colors.blue : Colors.grey[300],
+                      foregroundColor: tossWinnerChoseBat == true ? Colors.white : Colors.black,
+                    ),
+                    onPressed: tossWinnerId == null ? null : () => setState(() => tossWinnerChoseBat = true),
+                    child: const Text('BAT'),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: tossWinnerChoseBat == false ? Colors.blue : Colors.grey[300],
+                      foregroundColor: tossWinnerChoseBat == false ? Colors.white : Colors.black,
+                    ),
+                    onPressed: tossWinnerId == null ? null : () => setState(() => tossWinnerChoseBat = false),
+                    child: const Text('BOWL'),
+                  ),
+                ],
               ),
             ],
             const SizedBox(height: 16),
             TextField(
               decoration: const InputDecoration(labelText: 'Number of Overs (1-50)'),
               keyboardType: TextInputType.number,
-              onChanged: (v) => setState(() => overs = int.tryParse(v) ?? 5),
+              onChanged: (v) => setState(() => overs = int.tryParse(v)),
             ),
             const SizedBox(height: 48),
             ElevatedButton(
-              onPressed: () {
-                if (teamAId != null && teamBId != null && tossWinnerId != null) {
-                  final teamA = teams.firstWhere((t) => t.id == teamAId);
-                  final teamB = teams.firstWhere((t) => t.id == teamBId);
-                  
-                  final match = Match(
-                    id: const Uuid().v4(),
-                    teamA: teamA,
-                    teamB: teamB,
-                    maxOvers: overs,
-                    tossWinnerId: tossWinnerId!,
-                    tossWinnerBatsFirst: teamABatsFirst,
-                    date: DateTime.now(),
-                  );
-                  
-                  ref.read(matchProvider.notifier).startMatch(match);
-                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (c) => const ScoringScreen()));
-                }
-              },
+              onPressed: (teamAId != null && teamBId != null && tossWinnerId != null && tossWinnerChoseBat != null && overs != null && overs! > 0)
+                ? () {
+                    final teamA = teams.firstWhere((t) => t.id == teamAId);
+                    final teamB = teams.firstWhere((t) => t.id == teamBId);
+                    
+                    final match = Match(
+                      id: const Uuid().v4(),
+                      teamA: teamA,
+                      teamB: teamB,
+                      maxOvers: overs!,
+                      tossWinnerId: tossWinnerId!,
+                      tossWinnerBatsFirst: tossWinnerChoseBat!,
+                      date: DateTime.now(),
+                    );
+                    
+                    ref.read(matchProvider.notifier).startMatch(match);
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (c) => const ScoringScreen()));
+                  }
+                : null, // Disabled until all fields are filled
               child: const Center(child: Text('Start Scoring')),
             ),
           ],

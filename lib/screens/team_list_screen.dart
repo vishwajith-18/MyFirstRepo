@@ -31,7 +31,19 @@ class TeamListScreen extends ConsumerWidget {
                     onTap: () {
                       // Optionally show player list or start match setup
                     },
-                    trailing: const Icon(Icons.chevron_right),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => AddTeamScreen(existingTeam: team))),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => ref.read(teamProvider.notifier).deleteTeam(team.id),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },

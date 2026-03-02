@@ -44,6 +44,7 @@ class Ball {
   final bool isNoBall;
   final WicketType? wicket;
   final String? fielderId;
+  final String? outPlayerId;
   final String strikerId;
   final String bowlerId;
 
@@ -53,6 +54,7 @@ class Ball {
     this.isNoBall = false,
     this.wicket,
     this.fielderId,
+    this.outPlayerId,
     required this.strikerId,
     required this.bowlerId,
   });
@@ -63,6 +65,7 @@ class Ball {
         'isNoBall': isNoBall,
         'wicket': wicket?.name,
         'fielderId': fielderId,
+        'outPlayerId': outPlayerId,
         'strikerId': strikerId,
         'bowlerId': bowlerId,
       };
@@ -74,6 +77,7 @@ class Ball {
         wicket:
             map['wicket'] != null ? WicketType.values.byName(map['wicket']) : null,
         fielderId: map['fielderId'],
+        outPlayerId: map['outPlayerId'],
         strikerId: map['strikerId'],
         bowlerId: map['bowlerId'],
       );

@@ -21,9 +21,17 @@ class TeamNotifier extends StateNotifier<List<Team>> {
     await loadTeams();
   }
 
+  Future<void> updateTeam(String id, String name, List<String> playerNames) async {
+    final players = playerNames
+        .map((n) => Player(id: const Uuid().v4(), name: n))
+        .toList();
+    final team = Team(id: id, name: name, players: players);
+    await DatabaseService.instance.updateTeam(team);
+    await loadTeams();
+  }
+
   Future<void> deleteTeam(String id) async {
-    // Implement delete logic in database service if needed
-    // For now, we'll just focus on state
+    await DatabaseService.instance.deleteTeam(id);
     await loadTeams();
   }
 }

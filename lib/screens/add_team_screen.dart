@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/team_provider.dart';
+import '../models/models.dart';
 
 class AddTeamScreen extends ConsumerStatefulWidget {
-  const AddTeamScreen({super.key});
+  final Team? existingTeam;
+  const AddTeamScreen({super.key, this.existingTeam});
 
   @override
   ConsumerState<AddTeamScreen> createState() => _AddTeamScreenState();
@@ -13,6 +15,18 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
   final _nameController = TextEditingController();
   final List<TextEditingController> _playerControllers = 
       List.generate(6, (index) => TextEditingController());
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.existingTeam != null) {
+      _nameController.text = widget.existingTeam!.name;
+      _playerControllers.clear();
+      for (var player in widget.existingTeam!.players) {
+        _playerControllers.add(TextEditingController(text: player.name));
+      }
+    }
+  }
 
   void _addPlayerField() {
     if (_playerControllers.length < 12) {
@@ -64,7 +78,11 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
                     .toList();
                 
                 if (_nameController.text.isNotEmpty && names.length >= 4) {
-                  ref.read(teamProvider.notifier).addTeam(_nameController.text, names);
+                  if (widget.existingTeam != null) {
+                    ref.read(teamProvider.notifier).updateTeam(widget.existingTeam!.id, _nameController.text, names);
+                  } else {
+                    ref.read(teamProvider.notifier).addTeam(_nameController.text, names);
+                  }
                   Navigator.pop(context);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(

@@ -13,6 +13,7 @@ class MatchState {
   final List<Ball> currentInningsBalls;
   final bool isLastManSolo;
   final List<MatchState> history; // For Undo
+  final bool isMatchComplete;
 
   MatchState({
     this.currentMatch,
@@ -23,6 +24,7 @@ class MatchState {
     this.currentInningsBalls = const [],
     this.isLastManSolo = false,
     this.history = const [],
+    this.isMatchComplete = false,
   });
 
   MatchState copyWith({
@@ -34,6 +36,7 @@ class MatchState {
     List<Ball>? currentInningsBalls,
     bool? isLastManSolo,
     List<MatchState>? history,
+    bool? isMatchComplete,
   }) {
     return MatchState(
       currentMatch: currentMatch ?? this.currentMatch,
@@ -44,6 +47,7 @@ class MatchState {
       currentInningsBalls: currentInningsBalls ?? this.currentInningsBalls,
       isLastManSolo: isLastManSolo ?? this.isLastManSolo,
       history: history ?? this.history,
+      isMatchComplete: isMatchComplete ?? this.isMatchComplete,
     );
   }
 }
@@ -57,6 +61,7 @@ class MatchNotifier extends StateNotifier<MatchState> {
       isInnings1: true,
       currentInningsBalls: [],
       history: [],
+      isMatchComplete: false,
     );
   }
 
@@ -74,6 +79,7 @@ class MatchNotifier extends StateNotifier<MatchState> {
     bool isNoBall = false,
     WicketType? wicket,
     String? fielderId,
+    String? outPlayerId,
   }) {
     // Save state to history for undo
     final prevState = state.copyWith(history: []);
@@ -85,6 +91,7 @@ class MatchNotifier extends StateNotifier<MatchState> {
       isNoBall: isNoBall,
       wicket: wicket,
       fielderId: fielderId,
+      outPlayerId: outPlayerId,
       strikerId: state.strikerId,
       bowlerId: state.currentBowlerId,
     );
@@ -108,22 +115,22 @@ class MatchNotifier extends StateNotifier<MatchState> {
     int legalBallsInInnings = updatedBalls.where((b) => !b.isWide && !b.isNoBall).length;
     bool isOverEnd = legalBallsInInnings > 0 && legalBallsInInnings % 6 == 0 && isLegal;
 
+    String newBowler = state.currentBowlerId;
     if (isOverEnd) {
       // Rotate striker for new over
       final temp = newStriker;
       newStriker = newNonStriker;
       newNonStriker = temp;
+      newBowler = ''; // Clear bowler
     }
 
     // Wicket Handling
     if (wicket != null) {
-      if (wicket == WicketType.runOut) {
-        // Run out logic: UI will tell us who got out
-        // For simplicity, we clear the fielder/player who got out if needed
-        // but typically the UI just asks for the new batsman to replace the one who left
+      final playerOut = outPlayerId ?? state.strikerId;
+      if (playerOut == state.nonStrikerId) {
+        newNonStriker = '';
       } else {
-        // Bowled, Caught, etc. - Striker is OUT
-        newStriker = ''; 
+        newStriker = '';
       }
     }
 
@@ -131,6 +138,7 @@ class MatchNotifier extends StateNotifier<MatchState> {
       currentInningsBalls: updatedBalls,
       strikerId: newStriker,
       nonStrikerId: newNonStriker,
+      currentBowlerId: newBowler,
       history: updatedHistory,
     );
 
@@ -170,8 +178,13 @@ class MatchNotifier extends StateNotifier<MatchState> {
       isLastManSolo: false,
     );
 
-    // Save to DB
+    // Save to DB + enforce 10-match limit
     DatabaseService.instance.saveMatch(updatedMatch);
+    DatabaseService.instance.enforceMatchHistoryLimit();
+  }
+
+  void loadMatchForScorecard(Match match) {
+    state = state.copyWith(currentMatch: match);
   }
 
   void undo() {
@@ -215,7 +228,20 @@ class MatchNotifier extends StateNotifier<MatchState> {
 
       if (currentScore >= target || inningsFinished) {
         // Match Finished!
-        // TODO: Update database with final score
+        final finishedInnings2 = Innings(
+          balls: state.currentInningsBalls,
+          playerIds: battingTeam.players.map((p) => p.id).toList(),
+          maxOvers: state.currentMatch!.maxOvers,
+        );
+        final finalMatch = state.currentMatch!.copyWith(
+          innings2: finishedInnings2,
+        );
+        state = state.copyWith(
+          currentMatch: finalMatch,
+          isMatchComplete: true,
+          isInnings1: false,
+        );
+        DatabaseService.instance.saveMatch(finalMatch);
       }
     }
   }

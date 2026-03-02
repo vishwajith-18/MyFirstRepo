@@ -62,12 +62,22 @@ class DatabaseService {
     return result.map((json) => Team.fromMap(json)).toList();
   }
 
+  Future<void> updateTeam(Team team) async {
+    final db = await instance.database;
+    await db.update('teams', team.toMap(), where: 'id = ?', whereArgs: [team.id]);
+  }
+
+  Future<void> deleteTeam(String id) async {
+    final db = await instance.database;
+    await db.delete('teams', where: 'id = ?', whereArgs: [id]);
+  }
+
   Future<void> saveMatch(Match match) async {
     final db = await instance.database;
     await db.insert('matches', match.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<List<Match>> getRecentMatches({int limit = 5}) async {
+  Future<List<Match>> getRecentMatches({int limit = 10}) async {
     final db = await instance.database;
     final result = await db.query('matches', orderBy: 'date DESC', limit: limit);
     final teams = await getAllTeams();
@@ -88,5 +98,21 @@ class DatabaseService {
         date: DateTime.parse(json['date'] as String),
       );
     }).toList();
+  }
+
+  Future<void> deleteMatch(String id) async {
+    final db = await instance.database;
+    await db.delete('matches', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> enforceMatchHistoryLimit({int max = 10}) async {
+    final db = await instance.database;
+    final all = await db.query('matches', orderBy: 'date DESC');
+    if (all.length > max) {
+      final toDelete = all.sublist(max);
+      for (final row in toDelete) {
+        await db.delete('matches', where: 'id = ?', whereArgs: [row['id']]);
+      }
+    }
   }
 }

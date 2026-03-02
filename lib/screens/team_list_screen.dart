@@ -28,9 +28,7 @@ class TeamListScreen extends ConsumerWidget {
                   child: ListTile(
                     title: Text(team.name),
                     subtitle: Text('${team.players.length} Players'),
-                    onTap: () {
-                      // Optionally show player list or start match setup
-                    },
+                    onTap: null,
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [

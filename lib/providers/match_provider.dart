@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../models/match_model.dart';
 import '../services/database_service.dart';
-import 'dart:async';
 
 class MatchState {
   final Match? currentMatch;

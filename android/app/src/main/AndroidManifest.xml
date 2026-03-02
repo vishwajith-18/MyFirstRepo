@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="vish_cric"
+        android:label="VISH_CRIC"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

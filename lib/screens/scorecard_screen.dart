@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/match_provider.dart';
 import '../models/match_model.dart';
 import '../models/models.dart';
+import '../services/pdf_service.dart';
 
 class ScorecardScreen extends ConsumerWidget {
   const ScorecardScreen({super.key});
@@ -21,6 +22,13 @@ class ScorecardScreen extends ConsumerWidget {
           icon: const Icon(Icons.home),
           onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'Download PDF Scorecard',
+            onPressed: () => PDFService.generateScorecard(match),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

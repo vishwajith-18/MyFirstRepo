@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/database_service.dart';
 import '../models/match_model.dart';
 import '../providers/match_provider.dart';
+import '../services/pdf_service.dart';
 import 'scorecard_screen.dart';
 
 class MatchHistoryScreen extends ConsumerStatefulWidget {
@@ -61,19 +62,29 @@ class _MatchHistoryScreenState extends ConsumerState<MatchHistoryScreen> {
                   onTap: () => _viewScorecard(context, m),
                   title: Text('${m.teamA.name} vs ${m.teamB.name}'),
                   subtitle: Text('${m.date.toString().split(' ')[0]}  |  $i1Score  vs  $i2Score  |  ${m.maxOvers} ov'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
-                    onPressed: () => showDialog(
-                      context: context,
-                      builder: (c) => AlertDialog(
-                        title: const Text('Delete Match?'),
-                        content: const Text('This will permanently remove this match record.'),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel')),
-                          TextButton(onPressed: () { Navigator.pop(c); _deleteMatch(m.id); }, child: const Text('Delete', style: TextStyle(color: Colors.red))),
-                        ],
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.picture_as_pdf, color: Colors.green),
+                        onPressed: () => PDFService.generateScorecard(m),
+                        tooltip: 'Download PDF',
                       ),
-                    ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        onPressed: () => showDialog(
+                          context: context,
+                          builder: (c) => AlertDialog(
+                            title: const Text('Delete Match?'),
+                            content: const Text('This will permanently remove this match record.'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel')),
+                              TextButton(onPressed: () { Navigator.pop(c); _deleteMatch(m.id); }, child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );

@@ -40,9 +40,9 @@ class ScorecardScreen extends ConsumerWidget {
             if (match.innings1 != null) ...[
               _InningsScorecardView(
                 innings: match.innings1!,
-                label: 'Innings 1: ${_battingTeamName(match, true)}',
-                battingTeam: _battingTeam(match, true),
-                bowlingTeam: _bowlingTeam(match, true),
+                label: 'Innings 1: ${match.battingTeamFor(true).name}',
+                battingTeam: match.battingTeamFor(true),
+                bowlingTeam: match.bowlingTeamFor(true),
                 allTeams: [match.teamA, match.teamB],
               ),
               const SizedBox(height: 24),
@@ -50,9 +50,9 @@ class ScorecardScreen extends ConsumerWidget {
             if (match.innings2 != null) ...[
               _InningsScorecardView(
                 innings: match.innings2!,
-                label: 'Innings 2: ${_battingTeamName(match, false)}',
-                battingTeam: _battingTeam(match, false),
-                bowlingTeam: _bowlingTeam(match, false),
+                label: 'Innings 2: ${match.battingTeamFor(false).name}',
+                battingTeam: match.battingTeamFor(false),
+                bowlingTeam: match.bowlingTeamFor(false),
                 allTeams: [match.teamA, match.teamB],
               ),
             ],
@@ -62,24 +62,6 @@ class ScorecardScreen extends ConsumerWidget {
     );
   }
 
-  Team _battingTeam(Match match, bool isInnings1) {
-    if (isInnings1) {
-      return match.tossWinnerBatsFirst
-          ? (match.tossWinnerId == match.teamA.id ? match.teamA : match.teamB)
-          : (match.tossWinnerId == match.teamA.id ? match.teamB : match.teamA);
-    } else {
-      return match.tossWinnerBatsFirst
-          ? (match.tossWinnerId == match.teamA.id ? match.teamB : match.teamA)
-          : (match.tossWinnerId == match.teamA.id ? match.teamA : match.teamB);
-    }
-  }
-
-  Team _bowlingTeam(Match match, bool isInnings1) {
-    final batting = _battingTeam(match, isInnings1);
-    return batting.id == match.teamA.id ? match.teamB : match.teamA;
-  }
-
-  String _battingTeamName(Match match, bool isInnings1) => _battingTeam(match, isInnings1).name;
 }
 
 // ─── Result Banner ───────────────────────────────────────────────────────────
@@ -94,16 +76,7 @@ class _MatchResultBanner extends StatelessWidget {
     final i2 = match.innings2;
     if (i1 == null) return const SizedBox.shrink();
 
-    String result = '';
-    if (i2 != null) {
-      if (i2.totalRuns > i1.totalRuns) {
-        result = '2nd innings team won by ${i2.totalRuns - i1.totalRuns} runs (chased target)';
-      } else if (i1.totalRuns > i2.totalRuns) {
-        result = '1st innings team won by ${i1.totalRuns - i2.totalRuns} runs';
-      } else {
-        result = 'Match Tied!';
-      }
-    }
+    String result = match.resultString;
 
     return Container(
       width: double.infinity,
@@ -153,14 +126,9 @@ class _InningsScorecardView extends StatelessWidget {
     }
 
     for (final b in innings.balls) {
-      if (!b.isWide) {
-        // ball faced
-        if (batterStats.containsKey(b.strikerId)) {
-          batterStats[b.strikerId]!['balls'] = (batterStats[b.strikerId]!['balls'] as int) + 1;
-          if (!b.isWide) {
-            batterStats[b.strikerId]!['runs'] = (batterStats[b.strikerId]!['runs'] as int) + b.runs;
-          }
-        }
+      if (!b.isWide && batterStats.containsKey(b.strikerId)) {
+        batterStats[b.strikerId]!['balls'] = (batterStats[b.strikerId]!['balls'] as int) + 1;
+        batterStats[b.strikerId]!['runs'] = (batterStats[b.strikerId]!['runs'] as int) + b.runs;
       }
       if (b.wicket != null) {
         final outId = b.outPlayerId ?? b.strikerId;

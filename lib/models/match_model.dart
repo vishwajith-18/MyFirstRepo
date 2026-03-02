@@ -88,4 +88,36 @@ class Match {
       date: date,
     );
   }
+
+  /// Returns the batting team for the given innings.
+  Team battingTeamFor(bool isInnings1) {
+    final tossWon = tossWinnerId == teamA.id ? teamA : teamB;
+    final tossLost = tossWon.id == teamA.id ? teamB : teamA;
+    final batsFirst = tossWinnerBatsFirst ? tossWon : tossLost;
+    final batsSecond = batsFirst.id == teamA.id ? teamB : teamA;
+    return isInnings1 ? batsFirst : batsSecond;
+  }
+
+  /// Returns the bowling team for the given innings.
+  Team bowlingTeamFor(bool isInnings1) {
+    final batting = battingTeamFor(isInnings1);
+    return batting.id == teamA.id ? teamB : teamA;
+  }
+
+  /// Human-readable match result string.
+  String get resultString {
+    final i1 = innings1;
+    final i2 = innings2;
+    if (i1 == null) return 'Match in progress';
+    if (i2 == null) {
+      return '${battingTeamFor(true).name}: ${i1.totalRuns}/${i1.totalWickets}';
+    }
+    if (i2.totalRuns > i1.totalRuns) {
+      return '${battingTeamFor(false).name} won – chased ${i1.totalRuns + 1}, '
+          'scored ${i2.totalRuns}/${i2.totalWickets}';
+    } else if (i1.totalRuns > i2.totalRuns) {
+      return '${battingTeamFor(true).name} won by ${i1.totalRuns - i2.totalRuns} runs';
+    }
+    return 'Match Tied!';
+  }
 }

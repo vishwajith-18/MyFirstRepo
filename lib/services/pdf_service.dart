@@ -8,31 +8,13 @@ class PDFService {
   static Future<void> generateScorecard(Match match) async {
     final pdf = pw.Document();
 
-    // Determine batting/bowling teams for each innings
-    final battingTeam1 = match.tossWinnerBatsFirst
-        ? (match.tossWinnerId == match.teamA.id ? match.teamA : match.teamB)
-        : (match.tossWinnerId == match.teamA.id ? match.teamB : match.teamA);
-    final bowlingTeam1 = battingTeam1.id == match.teamA.id ? match.teamB : match.teamA;
-    final battingTeam2 = bowlingTeam1;
-    final bowlingTeam2 = battingTeam1;
+    final battingTeam1 = match.battingTeamFor(true);
+    final bowlingTeam1 = match.bowlingTeamFor(true);
+    final battingTeam2 = match.battingTeamFor(false);
+    final bowlingTeam2 = match.bowlingTeamFor(false);
 
     final allTeams = [match.teamA, match.teamB];
-
-    // Match result string
-    String result = 'Match in progress';
-    if (match.innings1 != null && match.innings2 != null) {
-      final s1 = match.innings1!.totalRuns;
-      final s2 = match.innings2!.totalRuns;
-      if (s2 > s1) {
-        result = '${battingTeam2.name} won (chased ${s1 + 1}, scored ${s2}/${match.innings2!.totalWickets})';
-      } else if (s1 > s2) {
-        result = '${battingTeam1.name} won by ${s1 - s2} runs';
-      } else {
-        result = 'Match Tied!';
-      }
-    } else if (match.innings1 != null) {
-      result = '1st innings: ${battingTeam1.name} ${match.innings1!.totalRuns}/${match.innings1!.totalWickets}';
-    }
+    final result = match.resultString;
 
     pdf.addPage(
       pw.MultiPage(

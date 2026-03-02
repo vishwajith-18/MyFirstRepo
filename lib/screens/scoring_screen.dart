@@ -21,15 +21,8 @@ class ScoringScreen extends ConsumerWidget {
       });
     }
 
-    final battingTeam = state.isInnings1
-        ? (match.tossWinnerBatsFirst
-            ? (match.tossWinnerId == match.teamA.id ? match.teamA : match.teamB)
-            : (match.tossWinnerId == match.teamA.id ? match.teamB : match.teamA))
-        : (match.tossWinnerBatsFirst
-            ? (match.tossWinnerId == match.teamA.id ? match.teamB : match.teamA)
-            : (match.tossWinnerId == match.teamA.id ? match.teamA : match.teamB));
-
-    final bowlingTeam = battingTeam.id == match.teamA.id ? match.teamB : match.teamA;
+    final battingTeam = match.battingTeamFor(state.isInnings1);
+    final bowlingTeam = match.bowlingTeamFor(state.isInnings1);
 
     // Get dismissed player IDs
     final dismissedIds = state.currentInningsBalls

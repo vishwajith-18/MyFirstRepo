@@ -16,13 +16,21 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  String? _savedStateJson;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkResumeMatch());
+    _loadSavedState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkResumeDialog());
   }
 
-  Future<void> _checkResumeMatch() async {
+  Future<void> _loadSavedState() async {
+    final stateJson = await DatabaseService.instance.getCurrentMatchState();
+    if (mounted) setState(() => _savedStateJson = stateJson);
+  }
+
+  Future<void> _checkResumeDialog() async {
     final stateJson = await DatabaseService.instance.getCurrentMatchState();
     if (stateJson != null) {
       if (!mounted) return;
@@ -31,10 +39,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final savedStateMap = jsonDecode(stateJson);
       final savedState = MatchState.fromMap(savedStateMap, teams);
       
-      // ONLY RESUME IF AT LEAST 1 BALL BOWLED
+      // ONLY RESUME DIALOG IF AT LEAST 1 BALL BOWLED
       if (savedState.currentInningsBalls.isEmpty && savedState.isInnings1) {
-        // Just clear it silently if it's an empty match
         await DatabaseService.instance.clearCurrentMatchState();
+        if (mounted) setState(() => _savedStateJson = null);
         return;
       }
 
@@ -47,25 +55,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             TextButton(
               onPressed: () {
                 DatabaseService.instance.clearCurrentMatchState();
+                if (mounted) setState(() => _savedStateJson = null);
                 Navigator.pop(c);
               },
               child: const Text('NO, DELETE'),
             ),
             TextButton(
-              onPressed: () async {
-                final teams = ref.read(teamProvider);
-                final savedStateMap = jsonDecode(stateJson);
-                final savedState = MatchState.fromMap(savedStateMap, teams);
-                ref.read(matchProvider.notifier).resumeMatch(savedState);
-                Navigator.pop(c);
-                Navigator.push(context, MaterialPageRoute(builder: (c) => const ScoringScreen()));
-              },
+              onPressed: () => _resumeAction(c, stateJson),
               child: const Text('YES, RESUME'),
             ),
           ],
         ),
       );
     }
+  }
+
+  Future<void> _resumeAction(BuildContext? dialogContext, String stateJson) async {
+    final teams = ref.read(teamProvider);
+    final savedStateMap = jsonDecode(stateJson);
+    final savedState = MatchState.fromMap(savedStateMap, teams);
+    ref.read(matchProvider.notifier).resumeMatch(savedState);
+    if (dialogContext != null) Navigator.pop(dialogContext);
+    Navigator.push(context, MaterialPageRoute(builder: (c) => const ScoringScreen()));
   }
 
   @override
@@ -85,6 +96,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 48),
+            
+            if (_savedStateJson != null) ...[
+              ElevatedButton.icon(
+                onPressed: () => _resumeAction(null, _savedStateJson!),
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('RESUME SAVED MATCH'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade700,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  await DatabaseService.instance.clearCurrentMatchState();
+                  setState(() => _savedStateJson = null);
+                },
+                icon: const Icon(Icons.delete_outline, size: 16),
+                label: const Text('Delete Halted Match', style: TextStyle(fontSize: 12)),
+                style: TextButton.styleFrom(foregroundColor: Colors.red.shade300),
+              ),
+              const SizedBox(height: 24),
+            ],
+
             ElevatedButton.icon(
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const TeamListScreen())),
               icon: const Icon(Icons.group),

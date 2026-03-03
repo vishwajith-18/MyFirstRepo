@@ -201,8 +201,8 @@ class MatchNotifier extends StateNotifier<MatchState> {
 
     bool isLegal = !isWide && !isNoBall;
     
-    // Rotate for odd runs on legal ball (or no-balls if runs were scored)
-    if ((runs % 2 != 0)) {
+    // Rotate for odd runs on legal ball (only if NOT in solo mode)
+    if (!state.isLastManSolo && (runs % 2 != 0)) {
        final temp = newStriker;
        newStriker = newNonStriker;
        newNonStriker = temp;
@@ -214,10 +214,12 @@ class MatchNotifier extends StateNotifier<MatchState> {
 
     String newBowler = state.currentBowlerId;
     if (isOverEnd) {
-      // Rotate striker for new over
-      final temp = newStriker;
-      newStriker = newNonStriker;
-      newNonStriker = temp;
+      if (!state.isLastManSolo) {
+        // Rotate striker for new over
+        final temp = newStriker;
+        newStriker = newNonStriker;
+        newNonStriker = temp;
+      }
       newBowler = ''; // Clear bowler
     }
 
@@ -296,7 +298,22 @@ class MatchNotifier extends StateNotifier<MatchState> {
   }
 
   void setLastManSolo(bool solo) {
-    state = state.copyWith(isLastManSolo: solo);
+    if (solo && state.currentMatch != null) {
+      final battingTeam = state.isInnings1 ? state.currentMatch!.battingTeamFor(true) : state.currentMatch!.battingTeamFor(false);
+      final dismissedIds = state.currentInningsBalls
+          .where((b) => b.wicket != null)
+          .map((b) => b.outPlayerId ?? b.strikerId)
+          .toSet();
+      final lastBatter = battingTeam.players.firstWhere((p) => !dismissedIds.contains(p.id));
+      
+      state = state.copyWith(
+        isLastManSolo: true,
+        strikerId: lastBatter.id,
+        nonStrikerId: '', // Empty non-striker for solo mode
+      );
+    } else {
+      state = state.copyWith(isLastManSolo: solo);
+    }
     saveState();
   }
 

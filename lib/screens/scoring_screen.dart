@@ -278,6 +278,11 @@ class PlayerSelectionView extends ConsumerWidget {
     final availableBatters = battingTeam.players.where((p) => !dismissedIds.contains(p.id)).toList();
     final availableBowlers = bowlingTeam.players.where((p) => p.id != lastOverBowlerId).toList();
 
+    // Validate striker/non-striker values exist in available list to prevent crash
+    String? currentStriker = availableBatters.any((p) => p.id == state.strikerId) ? (state.strikerId.isEmpty ? null : state.strikerId) : null;
+    String? currentNonStriker = availableBatters.any((p) => p.id == state.nonStrikerId) ? (state.nonStrikerId.isEmpty ? null : state.nonStrikerId) : null;
+    String? currentBowler = availableBowlers.any((p) => p.id == state.currentBowlerId) ? (state.currentBowlerId.isEmpty ? null : state.currentBowlerId) : null;
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -286,9 +291,9 @@ class PlayerSelectionView extends ConsumerWidget {
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: state.strikerId.isEmpty ? null : state.strikerId,
+                  value: currentStriker,
                   decoration: const InputDecoration(labelText: 'Striker'),
-                  items: availableBatters.where((p) => p.id != state.nonStrikerId).map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
+                  items: availableBatters.where((p) => p.id != currentNonStriker).map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
                   onChanged: (v) => ref.read(matchProvider.notifier).setupPlayers(v!, state.nonStrikerId, state.currentBowlerId),
                 ),
               ),
@@ -296,9 +301,9 @@ class PlayerSelectionView extends ConsumerWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: state.nonStrikerId.isEmpty ? null : state.nonStrikerId,
+                    value: currentNonStriker,
                     decoration: const InputDecoration(labelText: 'Non-Striker'),
-                    items: availableBatters.where((p) => p.id != state.strikerId).map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
+                    items: availableBatters.where((p) => p.id != currentStriker).map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
                     onChanged: (v) => ref.read(matchProvider.notifier).setupPlayers(state.strikerId, v!, state.currentBowlerId),
                   ),
                 ),
@@ -310,7 +315,7 @@ class PlayerSelectionView extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: state.currentBowlerId.isEmpty ? null : state.currentBowlerId,
+            value: currentBowler,
             decoration: InputDecoration(
               labelText: lastOverBowlerId.isNotEmpty ? 'Bowler (prev. bowler excluded)' : 'Bowler',
             ),
@@ -525,7 +530,7 @@ class _WicketSheetState extends State<_WicketSheet> {
     final state = ref.read(matchProvider);
     final match = state.currentMatch;
     if (match == null) return;
-    final battingTeam = state.isInnings1 ? match.teamA : match.teamB;
+    final battingTeam = match.battingTeamFor(state.isInnings1);
     if (ref.read(matchProvider.notifier).shouldPromptLastMan(battingTeam)) {
       showDialog(
         context: context,

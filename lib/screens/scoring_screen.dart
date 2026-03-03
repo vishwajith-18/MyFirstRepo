@@ -208,48 +208,74 @@ class CurrentOverTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final legal = state.currentInningsBalls.where((b) => !b.isWide && !b.isNoBall).length;
-    final currentOverStart = (legal ~/ 6) * 6;
-    // all balls from the start of this over (including extras)
-    // The legal balls index is tricky, we need to reconstruct the current over
-    // We'll collect balls that belong to the current over by counting legal deliveries
+    if (state.currentInningsBalls.isEmpty) return const SizedBox.shrink();
+
+    // Group balls into overs
+    final List<List<Ball>> oversList = [];
+    List<Ball> currentOver = [];
     int legalCount = 0;
-    final currentOverBalls = <Ball>[];
 
     for (final b in state.currentInningsBalls) {
-      final overNum = legalCount ~/ 6;
-      final targetOver = currentOverStart ~/ 6;
-      if (overNum == targetOver) {
-        currentOverBalls.add(b);
+      currentOver.add(b);
+      if (!b.isWide && !b.isNoBall) {
+        legalCount++;
+        if (legalCount % 6 == 0) {
+          oversList.add(List.from(currentOver));
+          currentOver.clear();
+        }
       }
-      if (!b.isWide && !b.isNoBall) legalCount++;
+    }
+    // Add the ongoing over if there are any balls
+    if (currentOver.isNotEmpty) {
+      oversList.add(currentOver);
     }
 
-    if (currentOverBalls.isEmpty) return const SizedBox.shrink();
+    // Only show last 3 overs to keep it clean but give history
+    final displayOvers = oversList.length > 3 ? oversList.sublist(oversList.length - 3) : oversList;
+    final int startOverIndex = oversList.length > 3 ? oversList.length - 3 : 0;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       color: Colors.black12,
-      child: SingleChildScrollView(
+      height: 70,
+      child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        child: Row(
-          children: currentOverBalls.map((b) {
-            return Container(
-              margin: const EdgeInsets.only(right: 6),
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: _color(b),
-                borderRadius: BorderRadius.circular(8),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: displayOvers.length,
+        itemBuilder: (context, index) {
+          final overBalls = displayOvers[index];
+          final overNum = startOverIndex + index + 1;
+          
+          return Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blueGrey.shade800,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text('Ov $overNum', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white70)),
               ),
-              alignment: Alignment.center,
-              child: Text(
-                _label(b),
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-              ),
-            );
-          }).toList(),
-        ),
+              const SizedBox(width: 8),
+              ...overBalls.map((b) => Container(
+                margin: const EdgeInsets.only(right: 6),
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: _color(b),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  _label(b),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              )).toList(),
+              if (index < displayOvers.length - 1)
+                const VerticalDivider(width: 24, thickness: 1, indent: 10, endIndent: 10),
+            ],
+          );
+        },
       ),
     );
   }

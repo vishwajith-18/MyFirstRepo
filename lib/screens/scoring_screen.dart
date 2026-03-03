@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/match_provider.dart';
 import '../models/models.dart';
 import 'scorecard_screen.dart';
+import '../services/database_service.dart';
 
 class ScoringScreen extends ConsumerWidget {
   const ScoringScreen({super.key});

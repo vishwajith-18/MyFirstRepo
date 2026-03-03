@@ -12,7 +12,7 @@ class Innings {
     required this.maxOvers,
   });
 
-  int get totalRuns => balls.fold(0, (sum, b) => sum + b.runs + (b.isWide || b.isNoBall ? 1 : 0));
+  int get totalRuns => balls.fold(0, (sum, b) => sum + b.teamRuns);
   int get totalWickets => balls.where((b) => b.wicket != null).length;
   
   int get legalBalls => balls.where((b) => !b.isWide && !b.isNoBall).length;
@@ -47,6 +47,7 @@ class Match {
   final Innings? innings1;
   final Innings? innings2;
   final DateTime date;
+  final int? goldenOver;
 
   Match({
     required this.id,
@@ -58,6 +59,7 @@ class Match {
     this.innings1,
     this.innings2,
     required this.date,
+    this.goldenOver,
   });
 
   Map<String, dynamic> toMap() => {
@@ -70,11 +72,13 @@ class Match {
     'innings1_json': innings1 != null ? jsonEncode(innings1!.toMap()) : null,
     'innings2_json': innings2 != null ? jsonEncode(innings2!.toMap()) : null,
     'date': date.toIso8601String(),
+    'golden_over': goldenOver,
   };
 
   Match copyWith({
     Innings? innings1,
     Innings? innings2,
+    int? goldenOver,
   }) {
     return Match(
       id: id,
@@ -86,6 +90,7 @@ class Match {
       innings1: innings1 ?? this.innings1,
       innings2: innings2 ?? this.innings2,
       date: date,
+      goldenOver: goldenOver ?? this.goldenOver,
     );
   }
 

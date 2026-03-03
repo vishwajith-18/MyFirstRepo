@@ -19,6 +19,8 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
   String? tossWinnerId;
   bool? tossWinnerChoseBat;
   int? overs;
+  bool isGoldenOverEnabled = false;
+  int? goldenOverNumber;
 
   @override
   Widget build(BuildContext context) {
@@ -85,13 +87,48 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
             ],
             const SizedBox(height: 16),
             TextField(
-              decoration: const InputDecoration(labelText: 'Number of Overs (1-50)'),
+              decoration: const InputDecoration(labelText: 'Number of Overs (1-50)', border: OutlineInputBorder()),
               keyboardType: TextInputType.number,
-              onChanged: (v) => setState(() => overs = int.tryParse(v)),
+              onChanged: (v) {
+                setState(() {
+                  overs = int.tryParse(v);
+                  if (overs != null && goldenOverNumber != null && goldenOverNumber! > overs!) {
+                    goldenOverNumber = null;
+                  }
+                });
+              },
             ),
+            const SizedBox(height: 16),
+            SwitchListTile(
+              title: const Text('Enable GOLDEN OVER'),
+              subtitle: const Text('Doubled runs and wicket penalties'),
+              value: isGoldenOverEnabled,
+              onChanged: (v) => setState(() => isGoldenOverEnabled = v),
+            ),
+            if (isGoldenOverEnabled)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextField(
+                  decoration: InputDecoration(
+                    labelText: 'Golden Over Number (1-${overs ?? 50})',
+                    border: const OutlineInputBorder(),
+                    errorText: (goldenOverNumber != null && overs != null && (goldenOverNumber! < 1 || goldenOverNumber! > overs!))
+                        ? 'Must be between 1 and $overs'
+                        : null,
+                  ),
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => setState(() => goldenOverNumber = int.tryParse(v)),
+                ),
+              ),
             const SizedBox(height: 48),
             ElevatedButton(
-              onPressed: (teamAId != null && teamBId != null && tossWinnerId != null && tossWinnerChoseBat != null && overs != null && overs! > 0)
+              onPressed: (teamAId != null && 
+                          teamBId != null && 
+                          tossWinnerId != null && 
+                          tossWinnerChoseBat != null && 
+                          overs != null && 
+                          overs! > 0 &&
+                          (!isGoldenOverEnabled || (goldenOverNumber != null && goldenOverNumber! >= 1 && goldenOverNumber! <= overs!)))
                 ? () {
                     final teamA = teams.firstWhere((t) => t.id == teamAId);
                     final teamB = teams.firstWhere((t) => t.id == teamBId);
@@ -104,6 +141,7 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
                       tossWinnerId: tossWinnerId!,
                       tossWinnerBatsFirst: tossWinnerChoseBat!,
                       date: DateTime.now(),
+                      goldenOver: isGoldenOverEnabled ? goldenOverNumber : null,
                     );
                     
                     ref.read(matchProvider.notifier).startMatch(match);

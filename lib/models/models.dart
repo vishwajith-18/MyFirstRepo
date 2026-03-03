@@ -47,6 +47,9 @@ class Ball {
   final String? outPlayerId;
   final String strikerId;
   final String bowlerId;
+  final bool isGolden;
+  final String? timelineLabel;
+  final int teamRuns;
 
   Ball({
     required this.runs,
@@ -57,6 +60,9 @@ class Ball {
     this.outPlayerId,
     required this.strikerId,
     required this.bowlerId,
+    this.isGolden = false,
+    this.timelineLabel,
+    this.teamRuns = 0,
   });
 
   Map<String, dynamic> toMap() => {
@@ -68,6 +74,9 @@ class Ball {
         'outPlayerId': outPlayerId,
         'strikerId': strikerId,
         'bowlerId': bowlerId,
+        'isGolden': isGolden,
+        'timelineLabel': timelineLabel,
+        'teamRuns': teamRuns,
       };
 
   factory Ball.fromMap(Map<String, dynamic> map) => Ball(
@@ -80,5 +89,8 @@ class Ball {
         outPlayerId: map['outPlayerId'],
         strikerId: map['strikerId'],
         bowlerId: map['bowlerId'],
+        isGolden: map['isGolden'] ?? false,
+        timelineLabel: map['timelineLabel'],
+        teamRuns: map['teamRuns'] ?? 0,
       );
 }

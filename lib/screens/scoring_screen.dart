@@ -44,23 +44,53 @@ class ScoringScreen extends ConsumerWidget {
 
     // Target for 2nd innings
     int? target;
+    int? runsNeeded;
+    int? ballsRemaining;
     if (!state.isInnings1 && match.innings1 != null) {
       target = match.innings1!.totalRuns + 1;
+      int currentScore = state.currentInningsBalls.fold(0, (sum, b) => sum + b.teamRuns);
+      runsNeeded = target - currentScore;
+      int maxBalls = match.maxOvers * 6;
+      int legalBallsBowled = state.currentInningsBalls.where((b) => !b.isWide && !b.isNoBall).length;
+      ballsRemaining = maxBalls - legalBallsBowled;
     }
 
-    return Scaffold(
+    // Is Golden Over right now?
+    int legalBallsParsed = state.currentInningsBalls.where((b) => !b.isWide && !b.isNoBall).length;
+    bool isGolden = match.goldenOver != null && (legalBallsParsed ~/ 6) + 1 == match.goldenOver;
+
+    return PopScope(
+      canPop: state.currentInningsBalls.isEmpty && state.isInnings1,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        final bool shouldExit = await showDialog(
+          context: context,
+          builder: (c) => AlertDialog(
+            title: const Text('Exit scoring?'),
+            content: const Text('Progress will be saved. You can resume later.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('CANCEL')),
+              TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('EXIT')),
+            ],
+          ),
+        ) ?? false;
+        if (shouldExit && context.mounted) {
+          Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Text('${battingTeam.name} Innings'),
         actions: [
-          if (target != null)
             Padding(
               padding: const EdgeInsets.only(right: 12.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text('target', style: TextStyle(fontSize: 11, color: Colors.white70)),
-                  Text('$target', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                  Text(runsNeeded! > 0 ? '$runsNeeded needed' : 'Target reached!', 
+                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  Text('$ballsRemaining balls left', style: const TextStyle(fontSize: 11, color: Colors.white70)),
                 ],
               ),
             ),
@@ -72,6 +102,17 @@ class ScoringScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
+          if (isGolden)
+            Container(
+              width: double.infinity,
+              color: Colors.amber.shade700,
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: const Text(
+                '⭐ GOLDEN OVER ACTIVE ⭐',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+              ),
+            ),
           ScoreboardView(state: state),
           CurrentOverTimeline(state: state),
           PlayerSelectionView(
@@ -97,7 +138,7 @@ class ScoreboardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    int runs = state.currentInningsBalls.fold(0, (sum, b) => sum + b.runs + (b.isWide || b.isNoBall ? 1 : 0));
+    int runs = state.currentInningsBalls.fold(0, (sum, b) => sum + b.teamRuns);
     int wickets = state.currentInningsBalls.where((b) => b.wicket != null).length;
     int legalBalls = state.currentInningsBalls.where((b) => !b.isWide && !b.isNoBall).length;
     String overs = "${legalBalls ~/ 6}.${legalBalls % 6}";
@@ -135,6 +176,7 @@ class CurrentOverTimeline extends StatelessWidget {
   const CurrentOverTimeline({super.key, required this.state});
 
   String _label(Ball b) {
+    if (b.timelineLabel != null) return b.timelineLabel!;
     if (b.isWide) return 'Wd';
     if (b.isNoBall) return 'Nb';
     if (b.wicket != null) return 'W';
@@ -142,6 +184,7 @@ class CurrentOverTimeline extends StatelessWidget {
   }
 
   Color _color(Ball b) {
+    if (b.isGolden) return Colors.amber.shade900;
     if (b.wicket != null) return Colors.brown.shade700;
     if (b.isWide || b.isNoBall) return Colors.orange.shade700;
     if (b.runs == 4) return Colors.blue.shade600;
@@ -232,19 +275,24 @@ class PlayerSelectionView extends ConsumerWidget {
                 child: DropdownButtonFormField<String>(
                   value: state.strikerId.isEmpty ? null : state.strikerId,
                   decoration: const InputDecoration(labelText: 'Striker'),
-                  items: availableBatters.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
+                  items: availableBatters.where((p) => p.id != state.nonStrikerId).map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
                   onChanged: (v) => ref.read(matchProvider.notifier).setupPlayers(v!, state.nonStrikerId, state.currentBowlerId),
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: state.nonStrikerId.isEmpty ? null : state.nonStrikerId,
-                  decoration: const InputDecoration(labelText: 'Non-Striker'),
-                  items: availableBatters.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
-                  onChanged: (v) => ref.read(matchProvider.notifier).setupPlayers(state.strikerId, v!, state.currentBowlerId),
+              if (!state.isLastManSolo) ...[
+                const SizedBox(width: 16),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: state.nonStrikerId.isEmpty ? null : state.nonStrikerId,
+                    decoration: const InputDecoration(labelText: 'Non-Striker'),
+                    items: availableBatters.where((p) => p.id != state.strikerId).map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
+                    onChanged: (v) => ref.read(matchProvider.notifier).setupPlayers(state.strikerId, v!, state.currentBowlerId),
+                  ),
                 ),
-              ),
+              ] else ...[
+                 const SizedBox(width: 16),
+                 const Expanded(child: Center(child: Text('SOLO BATTING', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)))),
+              ],
             ],
           ),
           const SizedBox(height: 16),
@@ -468,17 +516,27 @@ class _WicketSheetState extends State<_WicketSheet> {
     if (ref.read(matchProvider.notifier).shouldPromptLastMan(battingTeam)) {
       showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (c) => AlertDialog(
-          title: const Text('Last Man Solo?'),
-          content: const Text('One player remaining. Continue solo?'),
+          title: const Text('Last man continues?'),
+          content: const Text('Only one batsman left. Continue solo?'),
           actions: [
             TextButton(
-              onPressed: () { ref.read(matchProvider.notifier).setLastManSolo(true); Navigator.pop(c); },
+              onPressed: () {
+                ref.read(matchProvider.notifier).setLastManSolo(true);
+                Navigator.pop(c);
+              },
               child: const Text('YES'),
             ),
             TextButton(
-              onPressed: () { ref.read(matchProvider.notifier).endInnings(); Navigator.pop(c); Navigator.pop(context); },
-              child: const Text('NO (End Innings)'),
+              onPressed: () {
+                ref.read(matchProvider.notifier).endInnings();
+                Navigator.pop(c);
+                if (state.isInnings1) {
+                   // Refresh screen state for 2nd innings
+                }
+              },
+              child: const Text('NO'),
             ),
           ],
         ),

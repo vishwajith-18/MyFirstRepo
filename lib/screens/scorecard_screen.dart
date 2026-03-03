@@ -149,7 +149,7 @@ class _InningsScorecardView extends StatelessWidget {
     for (final b in innings.balls) {
       if (bowlerStats.containsKey(b.bowlerId)) {
         if (!b.isWide && !b.isNoBall) bowlerStats[b.bowlerId]!['balls'] = (bowlerStats[b.bowlerId]!['balls'] as int) + 1;
-        bowlerStats[b.bowlerId]!['runs'] = (bowlerStats[b.bowlerId]!['runs'] as int) + b.runs + (b.isWide || b.isNoBall ? 1 : 0);
+        bowlerStats[b.bowlerId]!['runs'] = (bowlerStats[b.bowlerId]!['runs'] as int) + b.teamRuns;
         if (b.wicket != null && b.wicket != WicketType.runOut) bowlerStats[b.bowlerId]!['wickets'] = (bowlerStats[b.bowlerId]!['wickets'] as int) + 1;
       }
     }

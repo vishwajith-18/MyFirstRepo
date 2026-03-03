@@ -173,8 +173,7 @@ class PDFService {
         if (!b.isWide && !b.isNoBall) {
           stats[b.bowlerId]!['balls'] = (stats[b.bowlerId]!['balls'] as int) + 1;
         }
-        stats[b.bowlerId]!['runs'] = (stats[b.bowlerId]!['runs'] as int) +
-            b.runs + (b.isWide || b.isNoBall ? 1 : 0);
+        stats[b.bowlerId]!['runs'] = (stats[b.bowlerId]!['runs'] as int) + b.teamRuns;
         if (b.wicket != null && b.wicket != WicketType.runOut) {
           stats[b.bowlerId]!['wickets'] = (stats[b.bowlerId]!['wickets'] as int) + 1;
         }

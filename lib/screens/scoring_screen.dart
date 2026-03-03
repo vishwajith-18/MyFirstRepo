@@ -47,7 +47,8 @@ class ScoringScreen extends ConsumerWidget {
     int? runsNeeded;
     int? ballsRemaining;
     if (!state.isInnings1 && match.innings1 != null) {
-      target = match.innings1!.totalRuns + 1;
+      int i1Score = match.innings1!.totalRuns;
+      target = i1Score > 0 ? i1Score + 1 : 1;
       int currentScore = state.currentInningsBalls.fold(0, (sum, b) => sum + b.teamRuns);
       runsNeeded = target - currentScore;
       int maxBalls = match.maxOvers * 6;
@@ -63,18 +64,26 @@ class ScoringScreen extends ConsumerWidget {
       canPop: state.currentInningsBalls.isEmpty && state.isInnings1,
       onPopInvoked: (didPop) async {
         if (didPop) return;
-        final bool shouldExit = await showDialog(
+        final String? action = await showDialog<String>(
           context: context,
           builder: (c) => AlertDialog(
             title: const Text('Exit scoring?'),
-            content: const Text('Progress will be saved. You can resume later.'),
+            content: const Text('Save progress or discard this session?'),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('CANCEL')),
-              TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('EXIT')),
+              TextButton(onPressed: () => Navigator.pop(c, 'cancel'), child: const Text('CANCEL')),
+              TextButton(onPressed: () => Navigator.pop(c, 'discard'), child: const Text('DISCARD', style: TextStyle(color: Colors.red))),
+              TextButton(onPressed: () => Navigator.pop(c, 'save'), child: const Text('SAVE & EXIT')),
             ],
           ),
-        ) ?? false;
-        if (shouldExit && context.mounted) {
+        );
+
+        if (action == null || action == 'cancel') return;
+        
+        if (action == 'discard') {
+          await DatabaseService.instance.clearCurrentMatchState();
+        }
+        
+        if (context.mounted) {
           Navigator.pop(context);
         }
       },
@@ -82,16 +91,17 @@ class ScoringScreen extends ConsumerWidget {
         appBar: AppBar(
           title: Text('${battingTeam.name} Innings'),
           actions: [
-            if (!state.isInnings1 && runsNeeded != null && ballsRemaining != null)
+            if (!state.isInnings1 && target != null)
               Padding(
                 padding: const EdgeInsets.only(right: 12.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(runsNeeded > 0 ? '$runsNeeded needed' : 'Target reached!', 
-                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                    Text('$ballsRemaining balls left', style: const TextStyle(fontSize: 11, color: Colors.white70)),
+                    Text('Target: $target', style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                    if (runsNeeded != null && ballsRemaining != null)
+                      Text(runsNeeded > 0 ? '$runsNeeded off $ballsRemaining' : 'Target reached!', 
+                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
                   ],
                 ),
               ),

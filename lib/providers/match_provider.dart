@@ -333,7 +333,11 @@ class MatchNotifier extends StateNotifier<MatchState> {
       // Innings 2: Chasing logic
       final i1 = state.currentMatch!.innings1;
       if (i1 == null) return;
-      int target = i1.totalRuns + 1;
+      
+      // REFINED TARGET LOGIC: if I1 score > 0 then score + 1 else 1
+      int i1Score = i1.totalRuns;
+      int target = i1Score > 0 ? i1Score + 1 : 1;
+      
       int currentScore = state.currentInningsBalls.fold(0, (sum, b) => sum + b.teamRuns);
 
       if (currentScore >= target || inningsFinished) {
@@ -352,7 +356,6 @@ class MatchNotifier extends StateNotifier<MatchState> {
           isInnings1: false,
         );
         DatabaseService.instance.saveMatch(finalMatch);
-        clearSession();
       }
     }
   }

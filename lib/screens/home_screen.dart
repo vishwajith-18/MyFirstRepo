@@ -26,6 +26,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final stateJson = await DatabaseService.instance.getCurrentMatchState();
     if (stateJson != null) {
       if (!mounted) return;
+      
+      final teams = ref.read(teamProvider);
+      final savedStateMap = jsonDecode(stateJson);
+      final savedState = MatchState.fromMap(savedStateMap, teams);
+      
+      // ONLY RESUME IF AT LEAST 1 BALL BOWLED
+      if (savedState.currentInningsBalls.isEmpty && savedState.isInnings1) {
+        // Just clear it silently if it's an empty match
+        await DatabaseService.instance.clearCurrentMatchState();
+        return;
+      }
+
       showDialog(
         context: context,
         builder: (c) => AlertDialog(

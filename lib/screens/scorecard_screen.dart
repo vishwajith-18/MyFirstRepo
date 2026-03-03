@@ -10,7 +10,8 @@ class ScorecardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final match = ref.read(matchProvider).currentMatch;
+    final state = ref.read(matchProvider);
+    final match = state.currentMatch;
     if (match == null) {
       return Scaffold(appBar: AppBar(title: const Text('Scorecard')), body: const Center(child: Text('No match data')));
     }
@@ -20,7 +21,12 @@ class ScorecardScreen extends ConsumerWidget {
         title: Text('${match.teamA.name} vs ${match.teamB.name}'),
         leading: IconButton(
           icon: const Icon(Icons.home),
-          onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+          onPressed: () {
+            if (state.isMatchComplete) {
+              ref.read(matchProvider.notifier).clearSession();
+            }
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
         ),
         actions: [
           IconButton(

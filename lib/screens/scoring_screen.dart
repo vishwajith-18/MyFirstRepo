@@ -79,52 +79,54 @@ class ScoringScreen extends ConsumerWidget {
         }
       },
       child: Scaffold(
-      appBar: AppBar(
-        title: Text('${battingTeam.name} Innings'),
-        actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 12.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(runsNeeded! > 0 ? '$runsNeeded needed' : 'Target reached!', 
-                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                  Text('$ballsRemaining balls left', style: const TextStyle(fontSize: 11, color: Colors.white70)),
-                ],
+        appBar: AppBar(
+          title: Text('${battingTeam.name} Innings'),
+          actions: [
+            if (!state.isInnings1 && runsNeeded != null && ballsRemaining != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 12.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(runsNeeded > 0 ? '$runsNeeded needed' : 'Target reached!', 
+                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                    Text('$ballsRemaining balls left', style: const TextStyle(fontSize: 11, color: Colors.white70)),
+                  ],
+                ),
               ),
+            IconButton(
+              icon: const Icon(Icons.undo),
+              onPressed: () => ref.read(matchProvider.notifier).undo(),
             ),
-          IconButton(
-            icon: const Icon(Icons.undo),
-            onPressed: () => ref.read(matchProvider.notifier).undo(),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (isGolden)
-            Container(
-              width: double.infinity,
-              color: Colors.amber.shade700,
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: const Text(
-                '⭐ GOLDEN OVER ACTIVE ⭐',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+          ],
+        ),
+        body: Column(
+          children: [
+            if (isGolden)
+              Container(
+                width: double.infinity,
+                color: Colors.amber.shade700,
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: const Text(
+                  '⭐ GOLDEN OVER ACTIVE ⭐',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                ),
               ),
+            ScoreboardView(state: state),
+            CurrentOverTimeline(state: state),
+            PlayerSelectionView(
+              state: state,
+              battingTeam: battingTeam,
+              bowlingTeam: bowlingTeam,
+              dismissedIds: dismissedIds,
+              lastOverBowlerId: lastOverBowlerId,
             ),
-          ScoreboardView(state: state),
-          CurrentOverTimeline(state: state),
-          PlayerSelectionView(
-            state: state,
-            battingTeam: battingTeam,
-            bowlingTeam: bowlingTeam,
-            dismissedIds: dismissedIds,
-            lastOverBowlerId: lastOverBowlerId,
-          ),
-          const Divider(),
-          Expanded(child: ScoringControlPanel(battingTeam: battingTeam, bowlingTeam: bowlingTeam)),
-        ],
+            const Divider(),
+            Expanded(child: ScoringControlPanel(battingTeam: battingTeam, bowlingTeam: bowlingTeam)),
+          ],
+        ),
       ),
     );
   }
@@ -532,9 +534,6 @@ class _WicketSheetState extends State<_WicketSheet> {
               onPressed: () {
                 ref.read(matchProvider.notifier).endInnings();
                 Navigator.pop(c);
-                if (state.isInnings1) {
-                   // Refresh screen state for 2nd innings
-                }
               },
               child: const Text('NO'),
             ),

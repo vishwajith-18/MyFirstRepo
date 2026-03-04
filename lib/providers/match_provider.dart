@@ -270,6 +270,7 @@ class MatchNotifier extends StateNotifier<MatchState> {
 
     state = state.copyWith(
       currentMatch: updatedMatch,
+      isMatchComplete: !state.isInnings1, // FINISH MATCH IF IT WAS INNINGS 2
       isInnings1: false, 
       currentInningsBalls: [], 
       strikerId: '', 
@@ -338,8 +339,10 @@ class MatchNotifier extends StateNotifier<MatchState> {
     int maxBalls = state.currentMatch!.maxOvers * 6;
 
     // All Out or Overs Finished
-    bool inningsFinished = (totalWickets >= battingTeam.players.length - 1 && !state.isLastManSolo) || 
-                          (totalWickets >= battingTeam.players.length && state.isLastManSolo) ||
+    // We only end automatically if ALL players are out (including solo) or overs are done.
+    // The n-1 case is handled by the UI popup which calls endInnings() if user selects NO.
+    bool inningsFinished = (totalWickets >= battingTeam.players.length && state.isLastManSolo) ||
+                          (totalWickets >= battingTeam.players.length && !state.isLastManSolo) || // Safety
                           (legalBalls >= maxBalls);
 
     if (state.isInnings1) {

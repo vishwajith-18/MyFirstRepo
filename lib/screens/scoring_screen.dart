@@ -225,36 +225,48 @@ class CurrentOverTimeline extends StatelessWidget {
         }
       }
     }
-    // Add the ongoing over if there are any balls
     if (currentOver.isNotEmpty) {
       oversList.add(currentOver);
     }
 
-    // Only show last 3 overs to keep it clean but give history
-    final displayOvers = oversList.length > 3 ? oversList.sublist(oversList.length - 3) : oversList;
-    final int startOverIndex = oversList.length > 3 ? oversList.length - 3 : 0;
-
+    // reverse list to show most recent on right
+    final reversedOvers = oversList.reversed.toList();
+    // Keep max 7 overs
+    final displayOvers = reversedOvers.length > 7 ? reversedOvers.sublist(0, 7) : reversedOvers;
+    
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       color: Colors.black12,
       height: 70,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
+        reverse: true, // This keeps the first item (current over) on the right
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: displayOvers.length,
         itemBuilder: (context, index) {
           final overBalls = displayOvers[index];
-          final overNum = startOverIndex + index + 1;
+          // overNum needs to be calculated from the original index
+          final overNum = oversList.length - index;
           
           return Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
+              if (index > 0) // if not the rightmost (current) over, add separator
+                const VerticalDivider(width: 24, thickness: 1, indent: 10, endIndent: 10),
+              
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.blueGrey.shade800,
+                  color: index == 0 ? Colors.blueAccent.shade700 : Colors.blueGrey.shade800,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text('Ov $overNum', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white70)),
+                child: Text('Ov $overNum', 
+                  style: TextStyle(
+                    fontSize: 10, 
+                    fontWeight: FontWeight.bold, 
+                    color: index == 0 ? Colors.white : Colors.white70
+                  )
+                ),
               ),
               const SizedBox(width: 8),
               ...overBalls.map((b) => Container(
@@ -271,8 +283,6 @@ class CurrentOverTimeline extends StatelessWidget {
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               )).toList(),
-              if (index < displayOvers.length - 1)
-                const VerticalDivider(width: 24, thickness: 1, indent: 10, endIndent: 10),
             ],
           );
         },

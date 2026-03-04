@@ -253,9 +253,7 @@ class MatchNotifier extends StateNotifier<MatchState> {
   void endInnings() {
     if (state.currentMatch == null) return;
     
-    final battingTeam = state.isInnings1 
-        ? (state.currentMatch!.tossWinnerBatsFirst ? state.currentMatch!.teamA : state.currentMatch!.teamB)
-        : (state.currentMatch!.tossWinnerBatsFirst ? state.currentMatch!.teamB : state.currentMatch!.teamA);
+    final battingTeam = state.currentMatch!.battingTeamFor(state.isInnings1);
 
     final finishedInnings = Innings(
       balls: state.currentInningsBalls,
@@ -330,20 +328,25 @@ class MatchNotifier extends StateNotifier<MatchState> {
   void _checkInningsEnd() {
     if (state.currentMatch == null) return;
 
-    final battingTeam = state.isInnings1 
-        ? (state.currentMatch!.tossWinnerBatsFirst ? state.currentMatch!.teamA : state.currentMatch!.teamB)
-        : (state.currentMatch!.tossWinnerBatsFirst ? state.currentMatch!.teamB : state.currentMatch!.teamA);
+    final battingTeam = state.currentMatch!.battingTeamFor(state.isInnings1);
 
     int totalWickets = state.currentInningsBalls.where((b) => b.wicket != null).length;
     int legalBalls = state.currentInningsBalls.where((b) => !b.isWide && !b.isNoBall).length;
     int maxBalls = state.currentMatch!.maxOvers * 6;
 
-    // All Out or Overs Finished
-    // We only end automatically if ALL players are out (including solo) or overs are done.
-    // The n-1 case is handled by the UI popup which calls endInnings() if user selects NO.
-    bool inningsFinished = (totalWickets >= battingTeam.players.length && state.isLastManSolo) ||
-                          (totalWickets >= battingTeam.players.length && !state.isLastManSolo) || // Safety
-                          (legalBalls >= maxBalls);
+    // Robust All Out / Last Man check: 
+    // If wickets == total players - 1, we wait for the Last Man prompt (setLastManSolo)
+    // Unless solo mode is already on.
+    bool allOutCorrected = false;
+    if (state.isLastManSolo) {
+       allOutCorrected = totalWickets >= battingTeam.players.length;
+    } else {
+       // If not solo, it ends if totalWickets >= players.length (safety)
+       // BUT it should NOT automatically end at totalWickets == players.length - 1
+       allOutCorrected = totalWickets >= battingTeam.players.length; 
+    }
+
+    bool inningsFinished = allOutCorrected || (legalBalls >= maxBalls);
 
     if (state.isInnings1) {
       if (inningsFinished) {

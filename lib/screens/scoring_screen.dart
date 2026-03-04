@@ -225,67 +225,90 @@ class CurrentOverTimeline extends StatelessWidget {
         }
       }
     }
-    if (currentOver.isNotEmpty) {
-      oversList.add(currentOver);
-    }
-
-    // reverse list to show most recent on right
-    final reversedOvers = oversList.reversed.toList();
-    // Keep max 7 overs
-    final displayOvers = reversedOvers.length > 7 ? reversedOvers.sublist(0, 7) : reversedOvers;
     
+    // Separate history from current
+    final List<List<Ball>> history = List.from(oversList);
+    final List<Ball> ongoing = List.from(currentOver);
+    final bool hasOngoing = ongoing.isNotEmpty;
+    final int ongoingOverNum = oversList.length + 1;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       color: Colors.black12,
       height: 70,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        reverse: true, // This keeps the first item (current over) on the right
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: displayOvers.length,
-        itemBuilder: (context, index) {
-          final overBalls = displayOvers[index];
-          // overNum needs to be calculated from the original index
-          final overNum = oversList.length - index;
+      child: Row(
+        children: [
+          // HISTORY (Scrollable to the left)
+          Expanded(
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              reverse: true, // Newer history on the right
+              itemCount: history.length,
+              itemBuilder: (context, index) {
+                // Since it's reversed, index 0 is the most recent historical over
+                final overIdx = history.length - 1 - index;
+                final overBalls = history[overIdx];
+                final overNum = overIdx + 1;
+                
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.blueGrey.shade800,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text('Ov $overNum', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white70)),
+                    ),
+                    const SizedBox(width: 8),
+                    ...overBalls.map((b) => _ballCircle(b)).toList(),
+                    if (index < history.length - 1 || hasOngoing)
+                      const VerticalDivider(width: 24, thickness: 1, indent: 10, endIndent: 10),
+                  ],
+                );
+              },
+            ),
+          ),
           
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (index > 0) // if not the rightmost (current) over, add separator
-                const VerticalDivider(width: 24, thickness: 1, indent: 10, endIndent: 10),
-              
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: index == 0 ? Colors.blueAccent.shade700 : Colors.blueGrey.shade800,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text('Ov $overNum', 
-                  style: TextStyle(
-                    fontSize: 10, 
-                    fontWeight: FontWeight.bold, 
-                    color: index == 0 ? Colors.white : Colors.white70
-                  )
-                ),
+          // CURRENT OVER (Fixed on the right)
+          if (hasOngoing)
+            Padding(
+              padding: const EdgeInsets.only(left: 8, right: 16),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent.shade700,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text('Ov $ongoingOverNum', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                  const SizedBox(width: 8),
+                  ...ongoing.map((b) => _ballCircle(b)).toList(),
+                ],
               ),
-              const SizedBox(width: 8),
-              ...overBalls.map((b) => Container(
-                margin: const EdgeInsets.only(right: 6),
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: _color(b),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  _label(b),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                ),
-              )).toList(),
-            ],
-          );
-        },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ballCircle(Ball b) {
+    return Container(
+      margin: const EdgeInsets.only(right: 6),
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: _color(b),
+        borderRadius: BorderRadius.circular(18), // circular
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        _label(b),
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
       ),
     );
   }

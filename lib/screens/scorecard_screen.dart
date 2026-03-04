@@ -126,39 +126,10 @@ class _InningsScorecardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Aggregate batter stats
-    final Map<String, Map<String, dynamic>> batterStats = {};
-    for (final p in battingTeam.players) {
-      batterStats[p.id] = {'runs': 0, 'balls': 0, 'dismissed': false, 'howOut': '', 'bowler': '', 'fielder': ''};
-    }
-
-    for (final b in innings.balls) {
-      if (!b.isWide && batterStats.containsKey(b.strikerId)) {
-        batterStats[b.strikerId]!['balls'] = (batterStats[b.strikerId]!['balls'] as int) + 1;
-        batterStats[b.strikerId]!['runs'] = (batterStats[b.strikerId]!['runs'] as int) + b.runs;
-      }
-      if (b.wicket != null) {
-        final outId = b.outPlayerId ?? b.strikerId;
-        if (batterStats.containsKey(outId)) {
-          batterStats[outId]!['dismissed'] = true;
-          batterStats[outId]!['howOut'] = b.wicket!.name;
-          batterStats[outId]!['bowler'] = _findPlayer(b.bowlerId)?.name ?? '';
-          batterStats[outId]!['fielder'] = b.fielderId != null ? (_findPlayer(b.fielderId!)?.name ?? '') : '';
-        }
-      }
-    }
+    final batterStats = innings.calculateBatterStats(battingTeam);
 
     // Aggregate bowler stats
-    final Map<String, Map<String, dynamic>> bowlerStats = {};
-    for (final p in bowlingTeam.players) {
-      bowlerStats[p.id] = {'balls': 0, 'runs': 0, 'wickets': 0};
-    }
-    for (final b in innings.balls) {
-      if (bowlerStats.containsKey(b.bowlerId)) {
-        if (!b.isWide && !b.isNoBall) bowlerStats[b.bowlerId]!['balls'] = (bowlerStats[b.bowlerId]!['balls'] as int) + 1;
-        bowlerStats[b.bowlerId]!['runs'] = (bowlerStats[b.bowlerId]!['runs'] as int) + b.teamRuns;
-        if (b.wicket != null && b.wicket != WicketType.runOut) bowlerStats[b.bowlerId]!['wickets'] = (bowlerStats[b.bowlerId]!['wickets'] as int) + 1;
-      }
-    }
+    final bowlerStats = innings.calculateBowlerStats(bowlingTeam);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -176,7 +147,7 @@ class _InningsScorecardView extends StatelessWidget {
               final b = e.value['balls'] as int;
               final sr = b > 0 ? (r / b * 100).toStringAsFixed(1) : '-';
               final howOut = e.value['dismissed'] as bool
-                  ? '${e.value['howOut']} ${e.value['fielder'].isNotEmpty ? "(${e.value['fielder']})" : ""} b ${e.value['bowler']}'.trim()
+                  ? _howOutStr(e.value)
                   : 'not out';
               return _dataRow([p.name, '$r', '$b', sr, howOut]);
             }),
@@ -201,6 +172,27 @@ class _InningsScorecardView extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String _howOutStr(Map<String, dynamic> v) {
+    final type = WicketType.values.byName(v['howOut']);
+    final bowler = _findPlayer(v['bowlerId'])?.name ?? '';
+    final fielder = v['fielderId'].isNotEmpty ? (_findPlayer(v['fielderId'])?.name ?? '') : '';
+
+    if (type == WicketType.caught) {
+      return fielder.isNotEmpty ? 'c $fielder b $bowler' : 'c & b $bowler';
+    } else if (type == WicketType.bowled) {
+      return 'b $bowler';
+    } else if (type == WicketType.runOut) {
+      return fielder.isNotEmpty ? 'run out ($fielder)' : 'run out';
+    } else if (type == WicketType.stumped) {
+      return 'st $fielder b $bowler';
+    } else if (type == WicketType.lbw) {
+      return 'lbw b $bowler';
+    } else if (type == WicketType.hitWicket) {
+      return 'hit wkt b $bowler';
+    }
+    return type.name;
   }
 
   TableRow _headerRow(List<String> cols) {

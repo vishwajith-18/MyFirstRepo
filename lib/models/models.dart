@@ -36,7 +36,7 @@ class Team {
   }
 }
 
-enum WicketType { bowled, caught, runOut, stumped, lbw, hitWicket, other }
+enum WicketType { bowled, caught, runOut, stumped, lbw, hitWicket }
 
 class Ball {
   final int runs;

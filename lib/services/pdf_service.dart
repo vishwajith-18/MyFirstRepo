@@ -94,40 +94,18 @@ class PDFService {
     }
 
     // Build per-batter stats
-    final Map<String, Map<String, dynamic>> stats = {};
+    final stats = innings.calculateBatterStats(battingTeam);
+
+    // Build table rows – only players who batted or got out
+    final List<List<String>> data = [];
     for (final p in battingTeam.players) {
-      stats[p.id] = {'runs': 0, 'balls': 0, 'dismissed': false, 'howOut': ''};
-    }
-
-    for (final b in innings.balls) {
-      if (!b.isWide && stats.containsKey(b.strikerId)) {
-        stats[b.strikerId]!['balls'] = (stats[b.strikerId]!['balls'] as int) + 1;
-        stats[b.strikerId]!['runs'] = (stats[b.strikerId]!['runs'] as int) + b.runs;
-      }
-      if (b.wicket != null) {
-        final outId = b.outPlayerId ?? b.strikerId;
-        if (stats.containsKey(outId)) {
-          stats[outId]!['dismissed'] = true;
-          final bowler = findPlayer(b.bowlerId)?.name ?? '';
-          final fielder = b.fielderId != null ? findPlayer(b.fielderId!)?.name ?? '' : '';
-
-          String howOut = b.wicket!.name;
-          if (b.wicket == WicketType.caught) {
-            howOut = fielder.isNotEmpty ? 'c $fielder b $bowler' : 'c & b $bowler';
-          } else if (b.wicket == WicketType.bowled) {
-            howOut = 'b $bowler';
-          } else if (b.wicket == WicketType.runOut) {
-            howOut = fielder.isNotEmpty ? 'run out ($fielder)' : 'run out';
-          } else if (b.wicket == WicketType.stumped) {
-            howOut = 'st $fielder b $bowler';
-          } else if (b.wicket == WicketType.lbw) {
-            howOut = 'lbw b $bowler';
-          } else if (b.wicket == WicketType.hitWicket) {
-            howOut = 'hit wkt b $bowler';
-          }
-          stats[outId]!['howOut'] = howOut;
-        }
-      }
+      final s = stats[p.id]!;
+      final r = s['runs'] as int;
+      final balls = s['balls'] as int;
+      if (balls == 0 && !(s['dismissed'] as bool)) continue; // Never faced a ball
+      final sr = balls > 0 ? (r / balls * 100).toStringAsFixed(1) : '-';
+      final out = s['dismissed'] as bool ? _howOutStr(s, allTeams) : 'not out';
+      data.add([p.name, '$r', '$balls', sr, out]);
     }
 
     // Build table rows – only players who batted or got out
@@ -164,21 +142,21 @@ class PDFService {
 
   // ─── Bowling table ────────────────────────────────────────────────────────
   static pw.Widget _bowlingTable(Innings innings, Team bowlingTeam) {
-    final Map<String, Map<String, dynamic>> stats = {};
-    for (final p in bowlingTeam.players) {
-      stats[p.id] = {'balls': 0, 'runs': 0, 'wickets': 0};
-    }
-    for (final b in innings.balls) {
-      if (stats.containsKey(b.bowlerId)) {
-        if (!b.isWide && !b.isNoBall) {
-          stats[b.bowlerId]!['balls'] = (stats[b.bowlerId]!['balls'] as int) + 1;
-        }
-        stats[b.bowlerId]!['runs'] = (stats[b.bowlerId]!['runs'] as int) + b.teamRuns;
-        if (b.wicket != null && b.wicket != WicketType.runOut) {
-          stats[b.bowlerId]!['wickets'] = (stats[b.bowlerId]!['wickets'] as int) + 1;
-        }
-      }
-    }
+    final stats = innings.calculateBowlerStats(bowlingTeam);
+
+    final List<List<String>> data = stats.entries
+        .where((e) => (e.value['balls'] as int) > 0)
+        .map((e) {
+          final p = bowlingTeam.players.firstWhere((x) => x.id == e.key,
+              orElse: () => Player(id: '', name: '?'));
+          final balls = e.value['balls'] as int;
+          final overs = '${balls ~/ 6}.${balls % 6}';
+          final runs = e.value['runs'] as int;
+          final wkts = e.value['wickets'] as int;
+          final econ = balls > 0 ? (runs / (balls / 6)).toStringAsFixed(1) : '-';
+          return [p.name, overs, '$runs', '$wkts', econ];
+        })
+        .toList();
 
     final List<List<String>> data = stats.entries
         .where((e) => (e.value['balls'] as int) > 0)
@@ -212,5 +190,35 @@ class PDFService {
       headers: ['Bowler', 'O', 'R', 'W', 'Econ'],
       data: data,
     );
+  }
+
+  static String _howOutStr(Map<String, dynamic> s, List<Team> allTeams) {
+    Player? findPlayer(String id) {
+      for (final t in allTeams) {
+        for (final p in t.players) {
+          if (p.id == id) return p;
+        }
+      }
+      return null;
+    }
+
+    final type = WicketType.values.byName(s['howOut']);
+    final bowler = findPlayer(s['bowlerId'])?.name ?? '';
+    final fielder = s['fielderId'].isNotEmpty ? (findPlayer(s['fielderId'])?.name ?? '') : '';
+
+    if (type == WicketType.caught) {
+      return fielder.isNotEmpty ? 'c $fielder b $bowler' : 'c & b $bowler';
+    } else if (type == WicketType.bowled) {
+      return 'b $bowler';
+    } else if (type == WicketType.runOut) {
+      return fielder.isNotEmpty ? 'run out ($fielder)' : 'run out';
+    } else if (type == WicketType.stumped) {
+      return 'st $fielder b $bowler';
+    } else if (type == WicketType.lbw) {
+      return 'lbw b $bowler';
+    } else if (type == WicketType.hitWicket) {
+      return 'hit wkt b $bowler';
+    }
+    return type.name;
   }
 }

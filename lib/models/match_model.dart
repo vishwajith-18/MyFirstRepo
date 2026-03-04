@@ -22,6 +22,49 @@ class Innings {
     return "$overs.$ballsInOver";
   }
 
+  Map<String, Map<String, dynamic>> calculateBatterStats(Team battingTeam) {
+    final Map<String, Map<String, dynamic>> stats = {};
+    for (final p in battingTeam.players) {
+      stats[p.id] = {'runs': 0, 'balls': 0, 'dismissed': false, 'howOut': '', 'bowlerId': '', 'fielderId': ''};
+    }
+
+    for (final b in balls) {
+      if (!b.isWide && stats.containsKey(b.strikerId)) {
+        stats[b.strikerId]!['balls'] = (stats[b.strikerId]!['balls'] as int) + 1;
+        stats[b.strikerId]!['runs'] = (stats[b.strikerId]!['runs'] as int) + b.runs;
+      }
+      if (b.wicket != null) {
+        final outId = b.outPlayerId ?? b.strikerId;
+        if (stats.containsKey(outId)) {
+          stats[outId]!['dismissed'] = true;
+          stats[outId]!['howOut'] = b.wicket!.name;
+          stats[outId]!['bowlerId'] = b.bowlerId;
+          stats[outId]!['fielderId'] = b.fielderId ?? '';
+        }
+      }
+    }
+    return stats;
+  }
+
+  Map<String, Map<String, dynamic>> calculateBowlerStats(Team bowlingTeam) {
+    final Map<String, Map<String, dynamic>> stats = {};
+    for (final p in bowlingTeam.players) {
+      stats[p.id] = {'balls': 0, 'runs': 0, 'wickets': 0};
+    }
+    for (final b in balls) {
+      if (stats.containsKey(b.bowlerId)) {
+        if (!b.isWide && !b.isNoBall) {
+          stats[b.bowlerId]!['balls'] = (stats[b.bowlerId]!['balls'] as int) + 1;
+        }
+        stats[b.bowlerId]!['runs'] = (stats[b.bowlerId]!['runs'] as int) + b.teamRuns;
+        if (b.wicket != null && b.wicket != WicketType.runOut) {
+          stats[b.bowlerId]!['wickets'] = (stats[b.bowlerId]!['wickets'] as int) + 1;
+        }
+      }
+    }
+    return stats;
+  }
+
   Map<String, dynamic> toMap() => {
     'balls': jsonEncode(balls.map((b) => b.toMap()).toList()),
     'playerIds': playerIds,

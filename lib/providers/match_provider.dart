@@ -335,19 +335,9 @@ class MatchNotifier extends StateNotifier<MatchState> {
     int legalBalls = state.currentInningsBalls.where((b) => !b.isWide && !b.isNoBall).length;
     int maxBalls = state.currentMatch!.maxOvers * 6;
 
-    // Robust All Out / Last Man check: 
-    // If wickets == total players - 1, we wait for the Last Man prompt (setLastManSolo)
-    // Unless solo mode is already on.
-    bool allOutCorrected = false;
-    if (state.isLastManSolo) {
-       allOutCorrected = totalWickets >= battingTeam.players.length;
-    } else {
-       // If not solo, it ends if totalWickets >= players.length (safety)
-       // BUT it should NOT automatically end at totalWickets == players.length - 1
-       allOutCorrected = totalWickets >= battingTeam.players.length; 
-    }
-
-    bool inningsFinished = allOutCorrected || (legalBalls >= maxBalls);
+    // All Out if wickets >= total players (minus 1 if solo mode not yet active)
+    bool allOut = totalWickets >= battingTeam.players.length;
+    bool inningsFinished = allOut || (legalBalls >= maxBalls);
 
     if (state.isInnings1) {
       if (inningsFinished) {

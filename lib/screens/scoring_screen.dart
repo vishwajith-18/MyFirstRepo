@@ -338,9 +338,9 @@ class PlayerSelectionView extends ConsumerWidget {
     final availableBowlers = bowlingTeam.players.where((p) => p.id != lastOverBowlerId).toList();
 
     // Validate striker/non-striker values exist in available list to prevent crash
-    String? currentStriker = availableBatters.any((p) => p.id == state.strikerId) ? (state.strikerId.isEmpty ? null : state.strikerId) : null;
-    String? currentNonStriker = availableBatters.any((p) => p.id == state.nonStrikerId) ? (state.nonStrikerId.isEmpty ? null : state.nonStrikerId) : null;
-    String? currentBowler = availableBowlers.any((p) => p.id == state.currentBowlerId) ? (state.currentBowlerId.isEmpty ? null : state.currentBowlerId) : null;
+    String? currentStriker = state.strikerId.isEmpty ? null : state.strikerId;
+    String? currentNonStriker = state.nonStrikerId.isEmpty ? null : state.nonStrikerId;
+    String? currentBowler = state.currentBowlerId.isEmpty ? null : state.currentBowlerId;
 
     return Padding(
       padding: const EdgeInsets.all(16),

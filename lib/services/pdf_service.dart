@@ -108,18 +108,6 @@ class PDFService {
       data.add([p.name, '$r', '$balls', sr, out]);
     }
 
-    // Build table rows – only players who batted or got out
-    final List<List<String>> data = [];
-    for (final p in battingTeam.players) {
-      final s = stats[p.id]!;
-      final r = s['runs'] as int;
-      final balls = s['balls'] as int;
-      if (balls == 0 && !(s['dismissed'] as bool)) continue; // Never faced a ball
-      final sr = balls > 0 ? (r / balls * 100).toStringAsFixed(1) : '-';
-      final out = s['dismissed'] as bool ? (s['howOut'] as String) : 'not out';
-      data.add([p.name, '$r', '$balls', sr, out]);
-    }
-
     if (data.isEmpty) {
       return pw.Text('No batting data', style: const pw.TextStyle(fontSize: 8));
     }
@@ -143,20 +131,6 @@ class PDFService {
   // ─── Bowling table ────────────────────────────────────────────────────────
   static pw.Widget _bowlingTable(Innings innings, Team bowlingTeam) {
     final stats = innings.calculateBowlerStats(bowlingTeam);
-
-    final List<List<String>> data = stats.entries
-        .where((e) => (e.value['balls'] as int) > 0)
-        .map((e) {
-          final p = bowlingTeam.players.firstWhere((x) => x.id == e.key,
-              orElse: () => Player(id: '', name: '?'));
-          final balls = e.value['balls'] as int;
-          final overs = '${balls ~/ 6}.${balls % 6}';
-          final runs = e.value['runs'] as int;
-          final wkts = e.value['wickets'] as int;
-          final econ = balls > 0 ? (runs / (balls / 6)).toStringAsFixed(1) : '-';
-          return [p.name, overs, '$runs', '$wkts', econ];
-        })
-        .toList();
 
     final List<List<String>> data = stats.entries
         .where((e) => (e.value['balls'] as int) > 0)

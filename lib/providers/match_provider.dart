@@ -107,6 +107,7 @@ class MatchNotifier extends StateNotifier<MatchState> {
   }
 
   void startMatch(Match match) {
+    clearSession();
     state = MatchState(
       currentMatch: match,
       isInnings1: true,

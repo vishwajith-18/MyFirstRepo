@@ -397,7 +397,7 @@ class ScoringControlPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(matchProvider);
-    final isReady = state.strikerId.isNotEmpty && state.nonStrikerId.isNotEmpty && state.currentBowlerId.isNotEmpty;
+    final isReady = state.strikerId.isNotEmpty && (state.isLastManSolo || state.nonStrikerId.isNotEmpty) && state.currentBowlerId.isNotEmpty;
 
     return SingleChildScrollView(
       child: Column(

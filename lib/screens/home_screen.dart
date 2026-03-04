@@ -39,8 +39,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final savedStateMap = jsonDecode(stateJson);
       final savedState = MatchState.fromMap(savedStateMap, teams);
       
-      // ONLY RESUME DIALOG IF AT LEAST 1 BALL BOWLED
-      if (savedState.currentInningsBalls.isEmpty && savedState.isInnings1) {
+      // SILENTLY CLEAR IF EMPTY MATCH OR ALREADY COMPLETE
+      if ((savedState.currentInningsBalls.isEmpty && savedState.isInnings1) || savedState.isMatchComplete) {
         await DatabaseService.instance.clearCurrentMatchState();
         if (mounted) setState(() => _savedStateJson = null);
         return;

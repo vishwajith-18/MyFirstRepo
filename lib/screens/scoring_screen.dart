@@ -338,9 +338,9 @@ class PlayerSelectionView extends ConsumerWidget {
     final availableBowlers = bowlingTeam.players.where((p) => p.id != lastOverBowlerId).toList();
 
     // Validate striker/non-striker values exist in available list to prevent crash
-    String? currentStriker = state.strikerId.isEmpty ? null : state.strikerId;
-    String? currentNonStriker = state.nonStrikerId.isEmpty ? null : state.nonStrikerId;
-    String? currentBowler = state.currentBowlerId.isEmpty ? null : state.currentBowlerId;
+    String? currentStriker = availableBatters.any((p) => p.id == state.strikerId) ? (state.strikerId.isEmpty ? null : state.strikerId) : null;
+    String? currentNonStriker = availableBatters.any((p) => p.id == state.nonStrikerId) ? (state.nonStrikerId.isEmpty ? null : state.nonStrikerId) : null;
+    String? currentBowler = availableBowlers.any((p) => p.id == state.currentBowlerId) ? (state.currentBowlerId.isEmpty ? null : state.currentBowlerId) : null;
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -352,8 +352,12 @@ class PlayerSelectionView extends ConsumerWidget {
                 child: DropdownButtonFormField<String>(
                   value: currentStriker,
                   decoration: const InputDecoration(labelText: 'Striker'),
-                  items: availableBatters.where((p) => p.id != currentNonStriker).map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
-                  onChanged: (v) => ref.read(matchProvider.notifier).setupPlayers(v!, state.nonStrikerId, state.currentBowlerId),
+                  items: [
+                    if (currentStriker == null)
+                      const DropdownMenuItem<String>(value: null, child: Text('Select Striker...')),
+                    ...availableBatters.where((p) => p.id != currentNonStriker).map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))),
+                  ],
+                  onChanged: (v) => ref.read(matchProvider.notifier).setupPlayers(v ?? '', state.nonStrikerId, state.currentBowlerId),
                 ),
               ),
               if (!state.isLastManSolo) ...[
@@ -362,8 +366,12 @@ class PlayerSelectionView extends ConsumerWidget {
                   child: DropdownButtonFormField<String>(
                     value: currentNonStriker,
                     decoration: const InputDecoration(labelText: 'Non-Striker'),
-                    items: availableBatters.where((p) => p.id != currentStriker).map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
-                    onChanged: (v) => ref.read(matchProvider.notifier).setupPlayers(state.strikerId, v!, state.currentBowlerId),
+                    items: [
+                      if (currentNonStriker == null)
+                        const DropdownMenuItem<String>(value: null, child: Text('Select Non-Striker...')),
+                      ...availableBatters.where((p) => p.id != currentStriker).map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))),
+                    ],
+                    onChanged: (v) => ref.read(matchProvider.notifier).setupPlayers(state.strikerId, v ?? '', state.currentBowlerId),
                   ),
                 ),
               ] else ...[
@@ -378,8 +386,12 @@ class PlayerSelectionView extends ConsumerWidget {
             decoration: InputDecoration(
               labelText: lastOverBowlerId.isNotEmpty ? 'Bowler (prev. bowler excluded)' : 'Bowler',
             ),
-            items: availableBowlers.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
-            onChanged: (v) => ref.read(matchProvider.notifier).setupPlayers(state.strikerId, state.nonStrikerId, v!),
+            items: [
+              if (currentBowler == null)
+                const DropdownMenuItem<String>(value: null, child: Text('Select Bowler...')),
+              ...availableBowlers.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))),
+            ],
+            onChanged: (v) => ref.read(matchProvider.notifier).setupPlayers(state.strikerId, state.nonStrikerId, v ?? ''),
           ),
         ],
       ),

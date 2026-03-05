@@ -299,17 +299,19 @@ class MatchNotifier extends StateNotifier<MatchState> {
 
   void setLastManSolo(bool solo) {
     if (solo && state.currentMatch != null) {
-      final battingTeam = state.isInnings1 ? state.currentMatch!.battingTeamFor(true) : state.currentMatch!.battingTeamFor(false);
+      final battingTeam = state.currentMatch!.battingTeamFor(state.isInnings1);
       final dismissedIds = state.currentInningsBalls
           .where((b) => b.wicket != null)
           .map((b) => b.outPlayerId ?? b.strikerId)
           .toSet();
-      final lastBatter = battingTeam.players.firstWhere((p) => !dismissedIds.contains(p.id));
-      
+      final lastBatter = battingTeam.players.firstWhere(
+        (p) => !dismissedIds.contains(p.id),
+        orElse: () => battingTeam.players.first,
+      );
       state = state.copyWith(
         isLastManSolo: true,
         strikerId: lastBatter.id,
-        nonStrikerId: '', // Empty non-striker for solo mode
+        nonStrikerId: '',
       );
     } else {
       state = state.copyWith(isLastManSolo: solo);
@@ -370,6 +372,7 @@ class MatchNotifier extends StateNotifier<MatchState> {
           isInnings1: false,
         );
         DatabaseService.instance.saveMatch(finalMatch);
+        DatabaseService.instance.enforceMatchHistoryLimit();
       }
     }
   }

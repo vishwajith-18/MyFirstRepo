@@ -84,15 +84,6 @@ class PDFService {
 
   // ─── Batting table ────────────────────────────────────────────────────────
   static pw.Widget _battingTable(Innings innings, Team battingTeam, List<Team> allTeams) {
-    Player? findPlayer(String id) {
-      for (final t in allTeams) {
-        for (final p in t.players) {
-          if (p.id == id) return p;
-        }
-      }
-      return null;
-    }
-
     // Build per-batter stats
     final stats = innings.calculateBatterStats(battingTeam);
 

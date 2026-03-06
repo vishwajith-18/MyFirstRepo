@@ -224,12 +224,14 @@ class MatchNotifier extends StateNotifier<MatchState> {
       newBowler = ''; // Clear bowler
     }
 
-    // Wicket Handling
+    // Wicket Handling – compare against post-rotation slots so the not-out
+    // batsman is never accidentally cleared (critical for wicket on last ball).
     if (wicket != null) {
       final playerOut = outPlayerId ?? state.strikerId;
-      if (playerOut == state.nonStrikerId) {
+      if (playerOut == newNonStriker) {
         newNonStriker = '';
       } else {
+        // Dismissed player was in the striker slot (before or after rotation).
         newStriker = '';
       }
     }

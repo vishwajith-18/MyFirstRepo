@@ -201,9 +201,12 @@ class MatchNotifier extends StateNotifier<MatchState> {
     String newNonStriker = state.nonStrikerId;
 
     bool isLegal = !isWide && !isNoBall;
-    
-    // Rotate for odd runs on legal ball (only if NOT in solo mode)
-    if (!state.isLastManSolo && (runs % 2 != 0)) {
+
+    // Rotate strike for odd runs on a legal, non-wicket ball (not in solo mode).
+    // Wicket balls are excluded: the dismissed batter's slot is cleared later,
+    // so an additional rotation would move the wrong player.
+    // Use finalRuns (post-golden-over doubling) so the direction is correct.
+    if (!state.isLastManSolo && wicket == null && (finalRuns % 2 != 0)) {
        final temp = newStriker;
        newStriker = newNonStriker;
        newNonStriker = temp;

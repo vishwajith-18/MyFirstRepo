@@ -148,15 +148,22 @@ class MatchNotifier extends StateNotifier<MatchState> {
     String? timelineLabel;
 
     if (isGolden) {
-      if (wicket != null) {
-        // Wicket in Golden Over: -5 team runs, -5 batsman, -5 bowler
+      if (isWide && wicket != null) {
+        // Golden Over: Wide + Wicket (e.g. stumping off a wide)
+        // Wide = +2 (doubled from 1), Wicket = -5 penalty → net -3 for team
+        // Batter gets -5 (wicket penalty applies to dismissed player)
+        finalRuns = -5;
+        ballScoreForTeam = 2 + (-5); // = -3
+        timelineLabel = "Wd+GO:W(-3)";
+      } else if (wicket != null) {
+        // Wicket in Golden Over: -5 team runs, -5 batsman
         finalRuns = -5;
         ballScoreForTeam = -5;
         timelineLabel = "GO:W-5";
       } else if (isWide) {
         finalRuns = 0; // Wide runs don't go to batter
         ballScoreForTeam = 2; // Doubled from 1
-        timelineLabel = "GO:2";
+        timelineLabel = "GO:Wd+2";
       } else if (isNoBall) {
         // No-ball: 2 base + (scored runs * 2)
         finalRuns = runs * 2; // Batter gets doubled runs

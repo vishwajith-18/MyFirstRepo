@@ -198,7 +198,7 @@ class CurrentOverTimeline extends StatelessWidget {
 
   Color _color(Ball b) {
     if (b.isGolden) return Colors.amber.shade900;
-    if (b.wicket != null) return Colors.brown.shade700;
+    if (b.wicket != null) return Colors.brown.shade700;  // Wicket takes priority
     if (b.isWide || b.isNoBall) return Colors.orange.shade700;
     if (b.runs == 4) return Colors.blue.shade600;
     if (b.runs == 6) return Colors.green.shade700;

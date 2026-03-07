@@ -175,6 +175,9 @@ class MatchNotifier extends StateNotifier<MatchState> {
       }
       if (isNoBall) {
         timelineLabel = runs > 0 ? "Nb$runs" : "Nb";
+      } else if (isWide && wicket != null) {
+        // Wide + wicket (e.g. stumping off a wide): show both
+        timelineLabel = "Wd+W";
       } else if (wicket != null) {
         timelineLabel = "W";
       }
@@ -202,11 +205,11 @@ class MatchNotifier extends StateNotifier<MatchState> {
 
     bool isLegal = !isWide && !isNoBall;
 
-    // Rotate strike for odd runs on a legal, non-wicket ball (not in solo mode).
-    // Wicket balls are excluded: the dismissed batter's slot is cleared later,
-    // so an additional rotation would move the wrong player.
-    // Use finalRuns (post-golden-over doubling) so the direction is correct.
-    if (!state.isLastManSolo && wicket == null && (finalRuns % 2 != 0)) {
+    // Rotate strike for odd runs on a non-wicket ball (not in solo mode).
+    // Use physical `runs` (NOT finalRuns) because strike rotation is based on
+    // whether the batters physically crossed — 1 golden-over run still means
+    // they crossed and strike should change even though team gets 2.
+    if (!state.isLastManSolo && wicket == null && (runs % 2 != 0)) {
        final temp = newStriker;
        newStriker = newNonStriker;
        newNonStriker = temp;

@@ -505,7 +505,8 @@ class _WicketSheetState extends State<_WicketSheet> {
   WicketType? selectedType;
   String? catcherId;
   String? runOutFielderId;
-  String? runOutPlayerId; // who got out – striker or non-striker
+  String? runOutPlayerId; // who got out - striker or non-striker
+  int runOutRuns = 0; // Runs physically completed before the run-out
 
   @override
   Widget build(BuildContext context) {
@@ -545,8 +546,18 @@ class _WicketSheetState extends State<_WicketSheet> {
               ),
             ],
 
-            // Run Out – pick who got out + optional fielder
+            // Run Out - pick who got out + optional fielder + runs scored
             if (selectedType == WicketType.runOut) ...[
+              const SizedBox(height: 16),
+              const Text('Runs completed?', style: TextStyle(fontWeight: FontWeight.w600)),
+              Wrap(
+                spacing: 10,
+                children: [0, 1, 2, 3].map((r) => ChoiceChip(
+                  label: Text('$r'),
+                  selected: runOutRuns == r,
+                  onSelected: (v) { if (v) setState(() => runOutRuns = r); },
+                )).toList(),
+              ),
               const SizedBox(height: 16),
               const Text('Who got Run Out?', style: TextStyle(fontWeight: FontWeight.w600)),
               RadioListTile<String>(
@@ -578,7 +589,7 @@ class _WicketSheetState extends State<_WicketSheet> {
                 onPressed: selectedType == null ? null : () {
                   final notifier = widget.ref.read(matchProvider.notifier);
                   if (selectedType == WicketType.runOut) {
-                    notifier.recordBall(runs: 0, wicket: WicketType.runOut, fielderId: runOutFielderId, outPlayerId: runOutPlayerId);
+                    notifier.recordBall(runs: runOutRuns, wicket: WicketType.runOut, fielderId: runOutFielderId, outPlayerId: runOutPlayerId);
                   } else if (selectedType == WicketType.caught) {
                     notifier.recordBall(runs: 0, wicket: WicketType.caught, fielderId: catcherId);
                   } else {

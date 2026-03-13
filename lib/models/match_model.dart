@@ -25,13 +25,23 @@ class Innings {
   Map<String, Map<String, dynamic>> calculateBatterStats(Team battingTeam) {
     final Map<String, Map<String, dynamic>> stats = {};
     for (final p in battingTeam.players) {
-      stats[p.id] = {'runs': 0, 'balls': 0, 'dismissed': false, 'howOut': '', 'bowlerId': '', 'fielderId': ''};
+      stats[p.id] = {'runs': 0, 'balls': 0, '4s': 0, '6s': 0, 'dismissed': false, 'howOut': '', 'bowlerId': '', 'fielderId': ''};
     }
 
     for (final b in balls) {
       if (!b.isWide && stats.containsKey(b.strikerId)) {
         stats[b.strikerId]!['balls'] = (stats[b.strikerId]!['balls'] as int) + 1;
         stats[b.strikerId]!['runs'] = (stats[b.strikerId]!['runs'] as int) + b.runs;
+        
+        // Count 4s and 6s based on actual runs, even in golden over.
+        // During golden over, runs are doubled (4 becomes 8, 6 becomes 12)
+        if (b.isGolden) {
+          if (b.runs == 8) stats[b.strikerId]!['4s'] = (stats[b.strikerId]!['4s'] as int) + 1;
+          if (b.runs == 12) stats[b.strikerId]!['6s'] = (stats[b.strikerId]!['6s'] as int) + 1;
+        } else {
+          if (b.runs == 4) stats[b.strikerId]!['4s'] = (stats[b.strikerId]!['4s'] as int) + 1;
+          if (b.runs == 6) stats[b.strikerId]!['6s'] = (stats[b.strikerId]!['6s'] as int) + 1;
+        }
       }
       if (b.wicket != null) {
         final outId = b.outPlayerId ?? b.strikerId;

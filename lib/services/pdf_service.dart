@@ -32,7 +32,7 @@ class PDFService {
             ],
           ),
           pw.SizedBox(height: 4),
-          pw.Text('${match.teamA.name} vs ${match.teamB.name}  •  ${match.maxOvers} Overs',
+          pw.Text('${match.teamA.name} vs ${match.teamB.name}  -  ${match.maxOvers} Overs',
               style: const pw.TextStyle(fontSize: 11)),
           pw.SizedBox(height: 4),
           pw.Container(
@@ -45,7 +45,7 @@ class PDFService {
 
           // ─── Innings 1 ────────────────────────────────────────────────────
           if (match.innings1 != null) ...[
-            _sectionHeader('Innings 1 – ${battingTeam1.name}  '
+            _sectionHeader('Innings 1 - ${battingTeam1.name}  '
                 '${match.innings1!.totalRuns}/${match.innings1!.totalWickets}  '
                 '(${match.innings1!.oversFormatted} ov)'),
             pw.SizedBox(height: 4),
@@ -57,7 +57,7 @@ class PDFService {
 
           // ─── Innings 2 ────────────────────────────────────────────────────
           if (match.innings2 != null) ...[
-            _sectionHeader('Innings 2 – ${battingTeam2.name}  '
+            _sectionHeader('Innings 2 - ${battingTeam2.name}  '
                 '${match.innings2!.totalRuns}/${match.innings2!.totalWickets}  '
                 '(${match.innings2!.oversFormatted} ov)'),
             pw.SizedBox(height: 4),
@@ -93,10 +93,12 @@ class PDFService {
       final s = stats[p.id]!;
       final r = s['runs'] as int;
       final balls = s['balls'] as int;
+      final fours = s['4s'] as int;
+      final sixes = s['6s'] as int;
       if (balls == 0 && !(s['dismissed'] as bool)) continue; // Never faced a ball
       final sr = balls > 0 ? (r / balls * 100).toStringAsFixed(1) : '-';
       final out = s['dismissed'] as bool ? _howOutStr(s, allTeams) : 'not out';
-      data.add([p.name, '$r', '$balls', sr, out]);
+      data.add([p.name, '$r', '$balls', '$fours', '$sixes', sr, out]);
     }
 
     if (data.isEmpty) {
@@ -109,12 +111,14 @@ class PDFService {
       cellPadding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       columnWidths: {
         0: const pw.FlexColumnWidth(2.5),
-        1: const pw.FlexColumnWidth(0.6),
-        2: const pw.FlexColumnWidth(0.6),
-        3: const pw.FlexColumnWidth(0.8),
-        4: const pw.FlexColumnWidth(3),
+        1: const pw.FlexColumnWidth(0.5),
+        2: const pw.FlexColumnWidth(0.5),
+        3: const pw.FlexColumnWidth(0.5),
+        4: const pw.FlexColumnWidth(0.5),
+        5: const pw.FlexColumnWidth(0.8),
+        6: const pw.FlexColumnWidth(3),
       },
-      headers: ['Batter', 'R', 'B', 'SR', 'Dismissal'],
+      headers: ['Batter', 'R', 'B', '4s', '6s', 'SR', 'Dismissal'],
       data: data,
     );
   }

@@ -153,8 +153,13 @@ class MatchNotifier extends StateNotifier<MatchState> {
         // Wide = +2 (doubled from 1), Wicket = -5 penalty → net -3 for team
         // Batter gets -5 (wicket penalty applies to dismissed player)
         finalRuns = -5;
-        ballScoreForTeam = 2 + (-5); // = -3
+        ballScoreForTeam = 2 + (-5) + (runs * 2); 
         timelineLabel = "Wd+GO:W(-3)";
+      } else if (wicket != null && wicket == WicketType.runOut) {
+        // Run out in Golden Over: -5 team runs, PLUS doubled completed runs
+        finalRuns = -5; // batter penalty
+        ballScoreForTeam = -5 + (runs * 2);
+        timelineLabel = "GO:W-5${runs > 0 ? '+${runs * 2}' : ''}";
       } else if (wicket != null) {
         // Wicket in Golden Over: -5 team runs, -5 batsman
         finalRuns = -5;
@@ -180,13 +185,18 @@ class MatchNotifier extends StateNotifier<MatchState> {
       if (isWide || isNoBall) {
         ballScoreForTeam = runs + 1;
       }
+      
       if (isNoBall) {
         timelineLabel = runs > 0 ? "Nb$runs" : "Nb";
       } else if (isWide && wicket != null) {
         // Wide + wicket (e.g. stumping off a wide): show both
         timelineLabel = "Wd+W";
       } else if (wicket != null) {
-        timelineLabel = "W";
+        if (wicket == WicketType.runOut && runs > 0) {
+           timelineLabel = "W+$runs";
+        } else {
+           timelineLabel = "W";
+        }
       }
     }
 
@@ -212,11 +222,12 @@ class MatchNotifier extends StateNotifier<MatchState> {
 
     bool isLegal = !isWide && !isNoBall;
 
-    // Rotate strike for odd runs on a non-wicket ball (not in solo mode).
+    // Rotate strike for odd runs on a non-wicket ball (not in solo mode),
+    // OR if there's a run out where odd runs were physically completed.
     // Use physical `runs` (NOT finalRuns) because strike rotation is based on
     // whether the batters physically crossed — 1 golden-over run still means
     // they crossed and strike should change even though team gets 2.
-    if (!state.isLastManSolo && wicket == null && (runs % 2 != 0)) {
+    if (!state.isLastManSolo && ((wicket == null || wicket == WicketType.runOut) && (runs % 2 != 0))) {
        final temp = newStriker;
        newStriker = newNonStriker;
        newNonStriker = temp;

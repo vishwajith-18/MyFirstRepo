@@ -138,18 +138,28 @@ class _InningsScorecardView extends StatelessWidget {
         const SizedBox(height: 8),
         // Batting Table
         Table(
-          columnWidths: const {0: FlexColumnWidth(3), 1: FlexColumnWidth(1), 2: FlexColumnWidth(1), 3: FlexColumnWidth(1), 4: FlexColumnWidth(3)},
+          columnWidths: const {
+            0: FlexColumnWidth(3), 
+            1: FlexColumnWidth(0.8), 
+            2: FlexColumnWidth(0.8), 
+            3: FlexColumnWidth(0.8), 
+            4: FlexColumnWidth(0.8), 
+            5: FlexColumnWidth(1), 
+            6: FlexColumnWidth(3)
+          },
           children: [
-            _headerRow(['Batter', 'R', 'B', 'SR', 'W']),
+            _headerRow(['Batter', 'R', 'B', '4s', '6s', 'SR', 'W']),
             ...batterStats.entries.map((e) {
               final p = battingTeam.players.firstWhere((x) => x.id == e.key, orElse: () => Player(id: '', name: '?'));
               final r = e.value['runs'] as int;
               final b = e.value['balls'] as int;
+              final fours = e.value['4s'] as int;
+              final sixes = e.value['6s'] as int;
               final sr = b > 0 ? (r / b * 100).toStringAsFixed(1) : '-';
               final howOut = e.value['dismissed'] as bool
                   ? _howOutStr(e.value)
                   : 'not out';
-              return _dataRow([p.name, '$r', '$b', sr, howOut]);
+              return _dataRow([p.name, '$r', '$b', '$fours', '$sixes', sr, howOut]);
             }),
           ],
         ),

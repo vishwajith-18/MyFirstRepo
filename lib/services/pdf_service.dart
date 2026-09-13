@@ -28,7 +28,7 @@ class PDFService {
                 'VISH_CRIC',
                 style: pw.TextStyle(
                   fontSize: 80,
-                  color: PdfColor.fromHex('#FFD700').withOpacity(0.15),
+                  color: const PdfColor(1.0, 0.843, 0.0, 0.15),
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),

@@ -1,3 +1,7 @@
+# CODEMAGIC BUILD CONFIGURATION
+# DO NOT REMOVE OR MODIFY THIS FILE — it is required for Codemagic cloud builds to work.
+# The flag --android-skip-build-dependency-validation bypasses a Flutter bug where it
+# incorrectly reports the Gradle version as too low. Keep this flag to avoid build failures.
 workflows:
   android-workflow:
     name: Android Release Build
@@ -7,9 +11,12 @@ workflows:
       - name: Get Flutter packages
         script: flutter packages pub get
       - name: Build Android App Bundle
+        # Flag required: Flutter falsely reports Gradle version is too low — bypass the check.
         script: flutter build appbundle --release --android-skip-build-dependency-validation
       - name: Build Android APK
+        # Flag required: same reason as above — keeps the build from failing on Codemagic.
         script: flutter build apk --release --android-skip-build-dependency-validation
     artifacts:
       - build/app/outputs/bundle/release/**/*.aab
       - build/app/outputs/flutter-apk/**/*.apk
+

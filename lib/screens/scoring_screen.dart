@@ -633,7 +633,6 @@ void showWidePopup(WidgetRef ref, BuildContext context) {
           width: 54,
           height: 44,
           child: ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.kGoldDark, foregroundColor: Colors.black),
             onPressed: () {
               ref.read(matchProvider.notifier).recordBall(runs: r, isWide: true);
               Navigator.pop(c);
@@ -659,7 +658,6 @@ void showNoBallPopup(WidgetRef ref, BuildContext context) {
           width: 54,
           height: 44,
           child: ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.kGoldDark, foregroundColor: Colors.black),
             onPressed: () {
               ref.read(matchProvider.notifier).recordBall(runs: r, isNoBall: true);
               Navigator.pop(c);

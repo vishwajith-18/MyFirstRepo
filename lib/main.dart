@@ -37,6 +37,7 @@ class CricApp extends StatelessWidget {
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 4,
+                  decoration: TextDecoration.none, // Removed default underlines
                 ),
               ),
             ),

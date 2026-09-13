@@ -18,8 +18,23 @@ class PDFService {
 
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(24),
+        pageTheme: pw.PageTheme(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(24),
+          buildBackground: (context) => pw.FullPage(
+            ignoreMargins: true,
+            child: pw.Watermark(
+              child: pw.Text(
+                'VISH_CRIC',
+                style: pw.TextStyle(
+                  fontSize: 80,
+                  color: PdfColor.fromHex('#FFD700').withOpacity(0.15),
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ),
         build: (pw.Context context) => [
           // ─── Header ───────────────────────────────────────────────────────
           pw.Row(
@@ -69,7 +84,13 @@ class PDFService {
       ),
     );
 
-    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+    final now = DateTime.now();
+    final filename = 'VISH_CRIC_${now.day}_${now.month}_${now.year}_${now.hour}_${now.minute}.pdf';
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+      name: filename,
+    );
   }
 
   // ─── Section header ───────────────────────────────────────────────────────

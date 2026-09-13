@@ -1,0 +1,15 @@
+workflows:
+  android-workflow:
+    name: Android Release Build
+    environment:
+      flutter: stable
+    scripts:
+      - name: Get Flutter packages
+        script: flutter packages pub get
+      - name: Build Android App Bundle
+        script: flutter build appbundle --release --android-skip-build-dependency-validation
+      - name: Build Android APK
+        script: flutter build apk --release --android-skip-build-dependency-validation
+    artifacts:
+      - build/app/outputs/bundle/release/**/*.aab
+      - build/app/outputs/flutter-apk/**/*.apk

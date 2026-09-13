@@ -62,6 +62,7 @@ class Innings {
         stats[b.bowlerId]!['runs'] = (stats[b.bowlerId]!['runs'] as int) + b.teamRuns;
         if (b.wicket != null && b.wicket != WicketType.runOut) {
           stats[b.bowlerId]!['wickets'] = (stats[b.bowlerId]!['wickets'] as int) + 1;
+        }
       }
     }
     for (final bId in stats.keys) {

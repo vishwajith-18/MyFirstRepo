@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'team_list_screen.dart';
 import 'match_history_screen.dart';
+import 'match_setup_screen.dart';
 import 'scoring_screen.dart';
 import '../services/database_service.dart';
 import '../providers/match_provider.dart';
-import '../providers/team_provider.dart';
 import 'dart:convert';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -27,7 +27,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _loadSavedState() async {
     final stateJson = await DatabaseService.instance.getCurrentMatchState();
-    if (mounted) setState(() => _savedStateJson = stateJson);
+    if (!mounted) return;
+    if (stateJson != null) {
+      // Check completion before showing resume button to avoid flash
+      final map = jsonDecode(stateJson);
+      final isComplete = map['isMatchComplete'] as bool? ?? false;
+      final hasBalls = (map['currentInningsBalls'] as List?)?.isNotEmpty ?? false;
+      if (!isComplete && hasBalls) {
+        setState(() => _savedStateJson = stateJson);
+      } else {
+        // Clean up stale completed/empty state
+        await DatabaseService.instance.clearCurrentMatchState();
+      }
+    }
   }
 
   Future<void> _checkResumeDialog() async {
@@ -35,7 +47,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (stateJson != null) {
       if (!mounted) return;
       
-      final teams = ref.read(teamProvider);
+      final teams = await DatabaseService.instance.getAllTeams();
+      if (!mounted) return;
+
       final savedStateMap = jsonDecode(stateJson);
       final savedState = MatchState.fromMap(savedStateMap, teams);
       
@@ -71,12 +85,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _resumeAction(BuildContext? dialogContext, String stateJson) async {
-    final teams = ref.read(teamProvider);
+    final teams = await DatabaseService.instance.getAllTeams();
+    if (!mounted) return;
+    
     final savedStateMap = jsonDecode(stateJson);
     final savedState = MatchState.fromMap(savedStateMap, teams);
     ref.read(matchProvider.notifier).resumeMatch(savedState);
-    if (dialogContext != null) Navigator.pop(dialogContext);
-    Navigator.push(context, MaterialPageRoute(builder: (c) => const ScoringScreen()));
+    if (dialogContext != null && dialogContext.mounted) Navigator.pop(dialogContext);
+    if (mounted) Navigator.push(context, MaterialPageRoute(builder: (c) => const ScoringScreen()));
   }
 
   @override
@@ -120,6 +136,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 24),
             ],
 
+            ElevatedButton.icon(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const MatchSetupScreen())),
+              icon: const Icon(Icons.add_circle_outline),
+              label: const Text('Start New Match'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent.shade700),
+            ),
+            const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const TeamListScreen())),
               icon: const Icon(Icons.group),

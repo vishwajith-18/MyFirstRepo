@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/team_provider.dart';
 import '../models/models.dart';
 import '../services/database_service.dart';
+import 'package:uuid/uuid.dart';
 
 class AddTeamScreen extends ConsumerStatefulWidget {
   final Team? existingTeam;
@@ -110,7 +111,20 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
                 }
                 
                 if (widget.existingTeam != null) {
-                  ref.read(teamProvider.notifier).updateTeam(widget.existingTeam!.id, teamName, names);
+                  final oldPlayers = widget.existingTeam!.players;
+                  List<Player> updatedPlayers = [];
+                  for (int i = 0; i < names.length; i++) {
+                    final newName = names[i];
+                    final exactMatches = oldPlayers.where((p) => p.name.toLowerCase() == newName.toLowerCase());
+                    if (exactMatches.isNotEmpty) {
+                      updatedPlayers.add(Player(id: exactMatches.first.id, name: newName));
+                    } else if (i < oldPlayers.length) {
+                      updatedPlayers.add(Player(id: oldPlayers[i].id, name: newName));
+                    } else {
+                      updatedPlayers.add(Player(id: const Uuid().v4(), name: newName));
+                    }
+                  }
+                  ref.read(teamProvider.notifier).updateTeam(widget.existingTeam!.id, teamName, updatedPlayers);
                 } else {
                   ref.read(teamProvider.notifier).addTeam(teamName, names);
                 }

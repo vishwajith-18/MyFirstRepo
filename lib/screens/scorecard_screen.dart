@@ -21,11 +21,11 @@ class ScorecardScreen extends ConsumerWidget {
         title: Text('${match.teamA.name} vs ${match.teamB.name}'),
         leading: IconButton(
           icon: const Icon(Icons.home),
-          onPressed: () {
+          onPressed: () async {
             if (state.isMatchComplete) {
-              ref.read(matchProvider.notifier).clearSession();
+              await ref.read(matchProvider.notifier).clearSession();
             }
-            Navigator.of(context).popUntil((route) => route.isFirst);
+            if (context.mounted) Navigator.of(context).popUntil((route) => route.isFirst);
           },
         ),
         actions: [
@@ -149,7 +149,12 @@ class _InningsScorecardView extends StatelessWidget {
           },
           children: [
             _headerRow(['Batter', 'R', 'B', '4s', '6s', 'SR', 'W']),
-            ...batterStats.entries.map((e) {
+            ...batterStats.entries.where((e) {
+              final b = e.value['balls'] as int;
+              final dismissed = e.value['dismissed'] as bool;
+              // Only show batters who faced at least one ball or were dismissed
+              return b > 0 || dismissed;
+            }).map((e) {
               final p = battingTeam.players.firstWhere((x) => x.id == e.key, orElse: () => Player(id: '', name: '?'));
               final r = e.value['runs'] as int;
               final b = e.value['balls'] as int;
@@ -157,7 +162,7 @@ class _InningsScorecardView extends StatelessWidget {
               final sixes = e.value['6s'] as int;
               final sr = b > 0 ? (r / b * 100).toStringAsFixed(1) : '-';
               final howOut = e.value['dismissed'] as bool
-                  ? _howOutStr(e.value)
+                  ? getHowOutString(e.value, allTeams)
                   : 'not out';
               return _dataRow([p.name, '$r', '$b', '$fours', '$sixes', sr, howOut]);
             }),
@@ -184,26 +189,6 @@ class _InningsScorecardView extends StatelessWidget {
     );
   }
 
-  String _howOutStr(Map<String, dynamic> v) {
-    final type = WicketType.values.byName(v['howOut']);
-    final bowler = _findPlayer(v['bowlerId'])?.name ?? '';
-    final fielder = v['fielderId'].isNotEmpty ? (_findPlayer(v['fielderId'])?.name ?? '') : '';
-
-    if (type == WicketType.caught) {
-      return fielder.isNotEmpty ? 'c $fielder b $bowler' : 'c & b $bowler';
-    } else if (type == WicketType.bowled) {
-      return 'b $bowler';
-    } else if (type == WicketType.runOut) {
-      return fielder.isNotEmpty ? 'run out ($fielder)' : 'run out';
-    } else if (type == WicketType.stumped) {
-      return 'st $fielder b $bowler';
-    } else if (type == WicketType.lbw) {
-      return 'lbw b $bowler';
-    } else if (type == WicketType.hitWicket) {
-      return 'hit wkt b $bowler';
-    }
-    return type.name;
-  }
 
   TableRow _headerRow(List<String> cols) {
     return TableRow(

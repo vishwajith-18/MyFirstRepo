@@ -69,8 +69,8 @@ class MatchState {
       final m = map['currentMatch'];
       match = Match(
         id: m['id'],
-        teamA: teamMap[m['teamA_id']]!,
-        teamB: teamMap[m['teamB_id']]!,
+        teamA: teamMap[m['teamA_id']] ?? Team(id: m['teamA_id'], name: 'Unknown', players: []),
+        teamB: teamMap[m['teamB_id']] ?? Team(id: m['teamB_id'], name: 'Unknown', players: []),
         maxOvers: m['overs'],
         tossWinnerId: m['toss_winner_id'],
         tossWinnerBatsFirst: m['toss_winner_bats_first'] == 1,
@@ -97,17 +97,17 @@ class MatchState {
 class MatchNotifier extends StateNotifier<MatchState> {
   MatchNotifier() : super(MatchState());
 
-  void saveState() {
+  Future<void> saveState() async {
     if (state.currentMatch != null) {
-      DatabaseService.instance.saveCurrentMatchState(
+      await DatabaseService.instance.saveCurrentMatchState(
         state.currentMatch!.id,
         jsonEncode(state.toMap()),
       );
     }
   }
 
-  void startMatch(Match match) {
-    clearSession();
+  Future<void> startMatch(Match match) async {
+    await clearSession();
     state = MatchState(
       currentMatch: match,
       isInnings1: true,
@@ -115,33 +115,31 @@ class MatchNotifier extends StateNotifier<MatchState> {
       history: [],
       isMatchComplete: false,
     );
-    saveState();
+    await saveState();
   }
 
-  void setupPlayers(String striker, String nonStriker, String bowler) {
+  Future<void> setupPlayers(String striker, String nonStriker, String bowler) async {
     state = state.copyWith(
       strikerId: striker,
       nonStrikerId: nonStriker,
       currentBowlerId: bowler,
     );
+    await saveState();
   }
 
-  void recordBall({
+  Future<void> recordBall({
     required int runs,
     bool isWide = false,
     bool isNoBall = false,
     WicketType? wicket,
     String? fielderId,
     String? outPlayerId,
-  }) {
-    // Save state to history for undo
+  }) async {
     final prevState = state.copyWith(history: []);
     final updatedHistory = [...state.history, prevState];
 
-    // GOLDEN OVER LOGIC
     int legalBallsParsed = state.currentInningsBalls.where((b) => !b.isWide && !b.isNoBall).length;
-    int currentOverNum = (legalBallsParsed ~/ 6) + 1;
-    bool isGolden = state.currentMatch?.goldenOver == currentOverNum;
+    bool isGolden = state.currentMatch?.isGoldenOverActive(legalBallsParsed) ?? false;
 
     int finalRuns = runs;
     int ballScoreForTeam = runs;
@@ -149,15 +147,13 @@ class MatchNotifier extends StateNotifier<MatchState> {
 
     if (isGolden) {
       if (isWide && wicket != null) {
-        // Golden Over: Wide + Wicket (e.g. stumping off a wide)
-        // Wide = +2 (doubled from 1), Wicket = -5 penalty → net -3 for team
-        // Batter gets -5 (wicket penalty applies to dismissed player)
+        // Golden Over: Wide + Wicket (net -3 for team, -5 to batter)
         finalRuns = -5;
         ballScoreForTeam = 2 + (-5) + (runs * 2); 
         timelineLabel = "Wd+GO:W(-3)";
       } else if (wicket != null && wicket == WicketType.runOut) {
         // Run out in Golden Over: -5 team runs, PLUS doubled completed runs
-        finalRuns = -5; // batter penalty
+        finalRuns = -5; 
         ballScoreForTeam = -5 + (runs * 2);
         timelineLabel = "GO:W-5${runs > 0 ? '+${runs * 2}' : ''}";
       } else if (wicket != null) {
@@ -175,22 +171,27 @@ class MatchNotifier extends StateNotifier<MatchState> {
         ballScoreForTeam = 2 + (runs * 2);
         timelineLabel = runs > 0 ? "Nb$runs→Nb${2 + (runs * 2)}" : "Nb";
       } else {
-        // Normal runs doubled
+        // Normal runs doubled; show bullet for dot ball
         finalRuns = runs * 2;
         ballScoreForTeam = runs * 2;
-        timelineLabel = "GO:${runs * 2}";
+        timelineLabel = runs == 0 ? "GO:•" : "GO:${runs * 2}";
       }
     } else {
       // Normal over logic
       if (isWide || isNoBall) {
         ballScoreForTeam = runs + 1;
       }
+      if (isWide && runs > 0) {
+        finalRuns = 0; // Wide extra runs do not go to batter
+      }
       
       if (isNoBall) {
         timelineLabel = runs > 0 ? "Nb$runs" : "Nb";
       } else if (isWide && wicket != null) {
-        // Wide + wicket (e.g. stumping off a wide): show both
-        timelineLabel = "Wd+W";
+        timelineLabel = runs > 0 ? "Wd+${runs}+W" : "Wd+W";
+      } else if (isWide) {
+        // Show extra runs on wide overthrows, else plain "Wd"
+        timelineLabel = runs > 0 ? "Wd+$runs" : null;
       } else if (wicket != null) {
         if (wicket == WicketType.runOut && runs > 0) {
            timelineLabel = "W+$runs";
@@ -222,11 +223,7 @@ class MatchNotifier extends StateNotifier<MatchState> {
 
     bool isLegal = !isWide && !isNoBall;
 
-    // Rotate strike for odd runs on a non-wicket ball (not in solo mode),
-    // OR if there's a run out where odd runs were physically completed.
-    // Use physical `runs` (NOT finalRuns) because strike rotation is based on
-    // whether the batters physically crossed — 1 golden-over run still means
-    // they crossed and strike should change even though team gets 2.
+    // Rotate strike for odd runs (use physical runs to detect crossing)
     if (!state.isLastManSolo && ((wicket == null || wicket == WicketType.runOut) && (runs % 2 != 0))) {
        final temp = newStriker;
        newStriker = newNonStriker;
@@ -234,7 +231,7 @@ class MatchNotifier extends StateNotifier<MatchState> {
     }
 
     // Over logic
-    int legalBallsInInnings = updatedBalls.where((b) => !b.isWide && !b.isNoBall).length;
+    int legalBallsInInnings = legalBallsParsed + (isLegal ? 1 : 0);
     bool isOverEnd = legalBallsInInnings > 0 && legalBallsInInnings % 6 == 0 && isLegal;
 
     String newBowler = state.currentBowlerId;
@@ -248,14 +245,12 @@ class MatchNotifier extends StateNotifier<MatchState> {
       newBowler = ''; // Clear bowler
     }
 
-    // Wicket Handling – compare against post-rotation slots so the not-out
-    // batsman is never accidentally cleared (critical for wicket on last ball).
+    // Wicket Handling – compare against post-rotation slots
     if (wicket != null) {
       final playerOut = outPlayerId ?? state.strikerId;
       if (playerOut == newNonStriker) {
         newNonStriker = '';
       } else {
-        // Dismissed player was in the striker slot (before or after rotation).
         newStriker = '';
       }
     }
@@ -268,8 +263,8 @@ class MatchNotifier extends StateNotifier<MatchState> {
       history: updatedHistory,
     );
 
-    saveState();
-    _checkInningsEnd();
+    await saveState();
+    await _checkInningsEnd();
   }
 
   bool shouldPromptLastMan(Team team) {
@@ -277,14 +272,11 @@ class MatchNotifier extends StateNotifier<MatchState> {
     return wickets == team.players.length - 1 && !state.isLastManSolo;
   }
 
-  void endInnings() {
+  Future<void> endInnings() async {
     if (state.currentMatch == null) return;
-    
-    final battingTeam = state.currentMatch!.battingTeamFor(state.isInnings1);
 
     final finishedInnings = Innings(
       balls: state.currentInningsBalls,
-      playerIds: battingTeam.players.map((p) => p.id).toList(),
       maxOvers: state.currentMatch!.maxOvers,
     );
 
@@ -305,25 +297,25 @@ class MatchNotifier extends StateNotifier<MatchState> {
     );
 
     // Save to DB + enforce 10-match limit
-    DatabaseService.instance.saveMatch(updatedMatch);
-    DatabaseService.instance.enforceMatchHistoryLimit();
-    saveState();
+    await DatabaseService.instance.saveMatch(updatedMatch);
+    await DatabaseService.instance.enforceMatchHistoryLimit();
+    await saveState();
   }
 
   void loadMatchForScorecard(Match match) {
     state = state.copyWith(currentMatch: match);
   }
 
-  void undo() {
+  Future<void> undo() async {
     if (state.history.isNotEmpty) {
       final lastState = state.history.last;
-      final newHistory = List<MatchState>.from(state.history)..removeLast();
+      final newHistory = state.history.sublist(0, state.history.length - 1);
       state = lastState.copyWith(history: newHistory);
-      saveState();
+      await saveState();
     }
   }
 
-  void setLastManSolo(bool solo) {
+  Future<void> setLastManSolo(bool solo) async {
     if (solo && state.currentMatch != null) {
       final battingTeam = state.currentMatch!.battingTeamFor(state.isInnings1);
       final dismissedIds = state.currentInningsBalls
@@ -339,28 +331,30 @@ class MatchNotifier extends StateNotifier<MatchState> {
         strikerId: lastBatter.id,
         nonStrikerId: '',
       );
-    } else {
-      state = state.copyWith(isLastManSolo: solo);
     }
-    saveState();
+    await saveState();
   }
 
   void resumeMatch(MatchState savedState) {
     state = savedState;
   }
 
-  void clearSession() {
-    DatabaseService.instance.clearCurrentMatchState();
+  Future<void> clearSession() async {
+    await DatabaseService.instance.clearCurrentMatchState();
     state = MatchState();
   }
 
-  void _checkInningsEnd() {
+  Future<void> _checkInningsEnd() async {
     if (state.currentMatch == null) return;
 
     final battingTeam = state.currentMatch!.battingTeamFor(state.isInnings1);
 
-    int totalWickets = state.currentInningsBalls.where((b) => b.wicket != null).length;
-    int legalBalls = state.currentInningsBalls.where((b) => !b.isWide && !b.isNoBall).length;
+    int totalWickets = 0, legalBalls = 0, currentScore = 0;
+    for (final b in state.currentInningsBalls) {
+      if (b.wicket != null) totalWickets++;
+      if (!b.isWide && !b.isNoBall) legalBalls++;
+      currentScore += b.teamRuns;
+    }
     int maxBalls = state.currentMatch!.maxOvers * 6;
 
     // All Out if wickets >= total players (minus 1 if solo mode not yet active)
@@ -369,24 +363,19 @@ class MatchNotifier extends StateNotifier<MatchState> {
 
     if (state.isInnings1) {
       if (inningsFinished) {
-        endInnings();
+        await endInnings();
       }
     } else {
       // Innings 2: Chasing logic
       final i1 = state.currentMatch!.innings1;
       if (i1 == null) return;
       
-      // REFINED TARGET LOGIC: if I1 score > 0 then score + 1 else 1
-      int i1Score = i1.totalRuns;
-      int target = i1Score > 0 ? i1Score + 1 : 1;
-      
-      int currentScore = state.currentInningsBalls.fold(0, (sum, b) => sum + b.teamRuns);
+      int target = state.currentMatch!.targetForInnings2;
 
       if (currentScore >= target || inningsFinished) {
         // Match Finished!
         final finishedInnings2 = Innings(
           balls: state.currentInningsBalls,
-          playerIds: battingTeam.players.map((p) => p.id).toList(),
           maxOvers: state.currentMatch!.maxOvers,
         );
         final finalMatch = state.currentMatch!.copyWith(
@@ -397,8 +386,9 @@ class MatchNotifier extends StateNotifier<MatchState> {
           isMatchComplete: true,
           isInnings1: false,
         );
-        DatabaseService.instance.saveMatch(finalMatch);
-        DatabaseService.instance.enforceMatchHistoryLimit();
+        await DatabaseService.instance.saveMatch(finalMatch);
+        await DatabaseService.instance.enforceMatchHistoryLimit();
+        await saveState();
       }
     }
   }

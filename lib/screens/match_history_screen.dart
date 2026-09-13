@@ -46,6 +46,9 @@ class _MatchHistoryScreenState extends ConsumerState<MatchHistoryScreen> {
       body: FutureBuilder<List<Match>>(
         future: _matchesFuture,
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text('Error loading matches: ${snapshot.error}'));
+          }
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           final matches = snapshot.data!;
           if (matches.isEmpty) return const Center(child: Text('No matches found'));

@@ -87,7 +87,11 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
             ],
             const SizedBox(height: 16),
             TextField(
-              decoration: const InputDecoration(labelText: 'Number of Overs (1-50)', border: OutlineInputBorder()),
+              decoration: InputDecoration(
+                labelText: 'Number of Overs (1-50)', 
+                border: const OutlineInputBorder(),
+                errorText: (overs != null && (overs! < 1 || overs! > 50)) ? 'Must be between 1 and 50' : null,
+              ),
               keyboardType: TextInputType.number,
               onChanged: (v) {
                 setState(() {
@@ -128,6 +132,7 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
                           tossWinnerChoseBat != null && 
                           overs != null && 
                           overs! > 0 &&
+                          overs! <= 50 &&
                           (!isGoldenOverEnabled || (goldenOverNumber != null && goldenOverNumber! >= 1 && goldenOverNumber! <= overs!)))
                 ? () {
                     final teamA = teams.firstWhere((t) => t.id == teamAId);

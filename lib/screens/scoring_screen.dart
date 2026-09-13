@@ -3,13 +3,37 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/match_provider.dart';
 import '../models/models.dart';
 import 'scorecard_screen.dart';
-import '../services/database_service.dart';
 
-class ScoringScreen extends ConsumerWidget {
+class ScoringScreen extends ConsumerStatefulWidget {
   const ScoringScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ScoringScreen> createState() => _ScoringScreenState();
+}
+
+class _ScoringScreenState extends ConsumerState<ScoringScreen> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Persist player selection when app is backgrounded or paused
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      ref.read(matchProvider.notifier).saveState();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(matchProvider);
     final match = state.currentMatch;
 
@@ -18,51 +42,44 @@ class ScoringScreen extends ConsumerWidget {
     // Navigate to scorecard when match is complete
     if (state.isMatchComplete) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (c) => const ScorecardScreen()));
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (c) => const ScorecardScreen()),
+          (route) => route.isFirst,
+        );
       });
     }
 
     final battingTeam = match.battingTeamFor(state.isInnings1);
     final bowlingTeam = match.bowlingTeamFor(state.isInnings1);
 
-    // Get dismissed player IDs
-    final dismissedIds = state.currentInningsBalls
-        .where((b) => b.wicket != null)
-        .map((b) => b.outPlayerId ?? b.strikerId)
-        .toSet();
-
-    // Compute last over's bowler ID (to disable them for consecutive over)
-    final legalBalls = state.currentInningsBalls.where((b) => !b.isWide && !b.isNoBall).toList();
-    final currentOverIndex = legalBalls.length ~/ 6;
+    // Single pass to gather stats and last over's bowler
+    final dismissedIds = <String>{};
+    int legalBallsCount = 0, currentScore = 0;
     String lastOverBowlerId = '';
-    if (currentOverIndex > 0) {
-      // find first ball of last completed over
-      final lastOverStartIndex = (currentOverIndex - 1) * 6;
-      if (lastOverStartIndex < legalBalls.length) {
-        lastOverBowlerId = legalBalls[lastOverStartIndex].bowlerId;
+    
+    for (final b in state.currentInningsBalls) {
+      if (b.wicket != null) dismissedIds.add(b.outPlayerId ?? b.strikerId);
+      if (!b.isWide && !b.isNoBall) {
+        legalBallsCount++;
+        if (legalBallsCount % 6 == 0) lastOverBowlerId = b.bowlerId;
       }
+      currentScore += b.teamRuns;
     }
 
     // Target for 2nd innings
-    int? target;
-    int? runsNeeded;
-    int? ballsRemaining;
+    int? target, runsNeeded, ballsRemaining;
     if (!state.isInnings1 && match.innings1 != null) {
-      int i1Score = match.innings1!.totalRuns;
-      target = i1Score > 0 ? i1Score + 1 : 1;
-      int currentScore = state.currentInningsBalls.fold(0, (sum, b) => sum + b.teamRuns);
+      target = match.targetForInnings2;
       runsNeeded = target - currentScore;
-      int maxBalls = match.maxOvers * 6;
-      int legalBallsBowled = state.currentInningsBalls.where((b) => !b.isWide && !b.isNoBall).length;
-      ballsRemaining = maxBalls - legalBallsBowled;
+      ballsRemaining = (match.maxOvers * 6) - legalBallsCount;
     }
 
     // Is Golden Over right now?
-    int legalBallsParsed = state.currentInningsBalls.where((b) => !b.isWide && !b.isNoBall).length;
-    bool isGolden = match.goldenOver != null && (legalBallsParsed ~/ 6) + 1 == match.goldenOver;
+    bool isGolden = match.isGoldenOverActive(legalBallsCount);
 
+    // Allow free back navigation only if no balls bowled in current innings
     return PopScope(
-      canPop: state.currentInningsBalls.isEmpty && state.isInnings1,
+      canPop: state.currentInningsBalls.isEmpty,
       onPopInvoked: (didPop) async {
         if (didPop) return;
         final String? action = await showDialog<String>(
@@ -81,7 +98,7 @@ class ScoringScreen extends ConsumerWidget {
         if (action == null || action == 'cancel') return;
         
         if (action == 'discard') {
-          await DatabaseService.instance.clearCurrentMatchState();
+          await ref.read(matchProvider.notifier).clearSession();
         }
         
         if (context.mounted) {
@@ -125,8 +142,8 @@ class ScoringScreen extends ConsumerWidget {
                   style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
                 ),
               ),
-            ScoreboardView(state: state),
-            CurrentOverTimeline(state: state),
+            ScoreboardView(balls: state.currentInningsBalls),
+            CurrentOverTimeline(balls: state.currentInningsBalls),
             PlayerSelectionView(
               state: state,
               battingTeam: battingTeam,
@@ -135,7 +152,7 @@ class ScoringScreen extends ConsumerWidget {
               lastOverBowlerId: lastOverBowlerId,
             ),
             const Divider(),
-            Expanded(child: ScoringControlPanel(battingTeam: battingTeam, bowlingTeam: bowlingTeam)),
+            const Expanded(child: ScoringControlPanel()),
           ],
         ),
       ),
@@ -146,14 +163,17 @@ class ScoringScreen extends ConsumerWidget {
 // ─── Scoreboard ───────────────────────────────────────────────────────────────
 
 class ScoreboardView extends StatelessWidget {
-  final MatchState state;
-  const ScoreboardView({super.key, required this.state});
+  final List<Ball> balls;
+  const ScoreboardView({super.key, required this.balls});
 
   @override
   Widget build(BuildContext context) {
-    int runs = state.currentInningsBalls.fold(0, (sum, b) => sum + b.teamRuns);
-    int wickets = state.currentInningsBalls.where((b) => b.wicket != null).length;
-    int legalBalls = state.currentInningsBalls.where((b) => !b.isWide && !b.isNoBall).length;
+    int runs = 0, wickets = 0, legalBalls = 0;
+    for (final b in balls) {
+      runs += b.teamRuns;
+      if (b.wicket != null) wickets++;
+      if (!b.isWide && !b.isNoBall) legalBalls++;
+    }
     String overs = "${legalBalls ~/ 6}.${legalBalls % 6}";
 
     return Container(
@@ -185,8 +205,8 @@ class ScoreboardView extends StatelessWidget {
 // ─── Over Timeline ────────────────────────────────────────────────────────────
 
 class CurrentOverTimeline extends StatelessWidget {
-  final MatchState state;
-  const CurrentOverTimeline({super.key, required this.state});
+  final List<Ball> balls;
+  const CurrentOverTimeline({super.key, required this.balls});
 
   String _label(Ball b) {
     if (b.timelineLabel != null) return b.timelineLabel!;
@@ -208,28 +228,25 @@ class CurrentOverTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state.currentInningsBalls.isEmpty) return const SizedBox.shrink();
+    if (balls.isEmpty) return const SizedBox.shrink();
 
     // Group balls into overs
-    final List<List<Ball>> oversList = [];
-    List<Ball> currentOver = [];
+    final oversList = <List<Ball>>[];
+    var currentOver = <Ball>[];
     int legalCount = 0;
 
-    for (final b in state.currentInningsBalls) {
+    for (final b in balls) {
       currentOver.add(b);
       if (!b.isWide && !b.isNoBall) {
         legalCount++;
         if (legalCount % 6 == 0) {
-          oversList.add(List.from(currentOver));
-          currentOver.clear();
+          oversList.add(currentOver);
+          currentOver = <Ball>[];
         }
       }
     }
     
-    // Separate history from current
-    final List<List<Ball>> history = List.from(oversList);
-    final List<Ball> ongoing = List.from(currentOver);
-    final bool hasOngoing = ongoing.isNotEmpty;
+    final bool hasOngoing = currentOver.isNotEmpty;
     final int ongoingOverNum = oversList.length + 1;
 
     return Container(
@@ -243,11 +260,11 @@ class CurrentOverTimeline extends StatelessWidget {
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               reverse: true, // Newer history on the right
-              itemCount: history.length,
+              itemCount: oversList.length,
               itemBuilder: (context, index) {
                 // Since it's reversed, index 0 is the most recent historical over
-                final overIdx = history.length - 1 - index;
-                final overBalls = history[overIdx];
+                final overIdx = oversList.length - 1 - index;
+                final overBalls = oversList[overIdx];
                 final overNum = overIdx + 1;
                 
                 return Row(
@@ -263,7 +280,7 @@ class CurrentOverTimeline extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     ...overBalls.map((b) => _ballCircle(b)).toList(),
-                    if (index < history.length - 1 || hasOngoing)
+                    if (index < oversList.length - 1 || hasOngoing)
                       const VerticalDivider(width: 24, thickness: 1, indent: 10, endIndent: 10),
                   ],
                 );
@@ -287,7 +304,7 @@ class CurrentOverTimeline extends StatelessWidget {
                     child: Text('Ov $ongoingOverNum', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
                   ),
                   const SizedBox(width: 8),
-                  ...ongoing.map((b) => _ballCircle(b)).toList(),
+                  ...currentOver.map((b) => _ballCircle(b)).toList(),
                 ],
               ),
             ),
@@ -402,13 +419,17 @@ class PlayerSelectionView extends ConsumerWidget {
 // ─── Scoring Controls ─────────────────────────────────────────────────────────
 
 class ScoringControlPanel extends ConsumerWidget {
-  final Team battingTeam;
-  final Team bowlingTeam;
-  const ScoringControlPanel({super.key, required this.battingTeam, required this.bowlingTeam});
+  const ScoringControlPanel({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(matchProvider);
+    final match = state.currentMatch;
+    if (match == null) return const SizedBox.shrink();
+    
+    final battingTeam = match.battingTeamFor(state.isInnings1);
+    final bowlingTeam = match.bowlingTeamFor(state.isInnings1);
+    
     final isReady = state.strikerId.isNotEmpty && (state.isLastManSolo || state.nonStrikerId.isNotEmpty) && state.currentBowlerId.isNotEmpty;
 
     return SingleChildScrollView(
@@ -420,7 +441,7 @@ class ScoringControlPanel extends ConsumerWidget {
               spacing: 12,
               runSpacing: 12,
               alignment: WrapAlignment.center,
-              children: [0, 1, 2, 3, 4, 6].map((run) {
+              children: [0, 1, 2, 3, 4, 5, 6].map((run) {
                 return SizedBox(
                   width: 80,
                   height: 80,
@@ -442,9 +463,9 @@ class ScoringControlPanel extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _actionButton('WIDE', Colors.orange.shade900, isReady ? () => ref.read(matchProvider.notifier).recordBall(runs: 0, isWide: true) : null),
-                _actionButton('NO BALL', Colors.deepOrange.shade900, isReady ? () => _showNoBallPopup(ref, context) : null),
-                _actionButton('WICKET', Colors.red.shade900, isReady ? () => _showWicketPopup(ref, context, battingTeam, bowlingTeam) : null),
+                _actionButton('WIDE', Colors.orange.shade900, isReady ? () => showWidePopup(ref, context) : null),
+                _actionButton('NO BALL', Colors.deepOrange.shade900, isReady ? () => showNoBallPopup(ref, context) : null),
+                _actionButton('WICKET', Colors.red.shade900, isReady ? () => showWicketPopup(ref, context, battingTeam, bowlingTeam) : null),
               ],
             ),
           ),
@@ -461,56 +482,114 @@ class ScoringControlPanel extends ConsumerWidget {
     );
   }
 
-  void _showNoBallPopup(WidgetRef ref, BuildContext context) {
+}
+
+void showWidePopup(WidgetRef ref, BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: const Text('Wide! Extra runs?'),
+      content: Wrap(
+        spacing: 10,
+        children: [0, 1, 2, 3, 4].map((r) => ElevatedButton(
+          onPressed: () {
+            ref.read(matchProvider.notifier).recordBall(runs: r, isWide: true);
+            Navigator.pop(c);
+          },
+          child: Text(r == 0 ? '0' : '+$r'),
+        )).toList(),
+      ),
+    ),
+  );
+}
+
+void showNoBallPopup(WidgetRef ref, BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: const Text('No Ball! Runs scored?'),
+      content: Wrap(
+        spacing: 10,
+        children: [0, 1, 2, 4, 6].map((r) => ElevatedButton(
+          onPressed: () {
+            ref.read(matchProvider.notifier).recordBall(runs: r, isNoBall: true);
+            Navigator.pop(c);
+          },
+          child: Text('$r'),
+        )).toList(),
+      ),
+    ),
+  );
+}
+
+void showWicketPopup(WidgetRef ref, BuildContext context, Team batting, Team bowling) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (c) => _WicketSheet(
+      batting: batting, 
+      bowling: bowling,
+      onWicketConfirmed: () => checkForLastMan(ref, context),
+    ),
+  );
+}
+
+void checkForLastMan(WidgetRef ref, BuildContext context) {
+  final state = ref.read(matchProvider);
+  if (state.isMatchComplete) return;
+  final match = state.currentMatch;
+  if (match == null) return;
+  final battingTeam = match.battingTeamFor(state.isInnings1);
+  if (ref.read(matchProvider.notifier).shouldPromptLastMan(battingTeam)) {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (c) => AlertDialog(
-        title: const Text('No Ball! Runs scored?'),
-        content: Wrap(
-          spacing: 10,
-          children: [0, 1, 2, 4, 6].map((r) => ElevatedButton(
+        title: const Text('Last man continues?'),
+        content: const Text('Only one batsman left. Continue solo?'),
+        actions: [
+          TextButton(
             onPressed: () {
-              ref.read(matchProvider.notifier).recordBall(runs: r, isNoBall: true);
+              ref.read(matchProvider.notifier).setLastManSolo(true);
               Navigator.pop(c);
             },
-            child: Text('$r'),
-          )).toList(),
-        ),
+            child: const Text('YES'),
+          ),
+          TextButton(
+            onPressed: () {
+              ref.read(matchProvider.notifier).endInnings();
+              Navigator.pop(c);
+            },
+            child: const Text('NO'),
+          ),
+        ],
       ),
-    );
-  }
-
-  void _showWicketPopup(WidgetRef ref, BuildContext context, Team batting, Team bowling) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (c) => _WicketSheet(ref: ref, batting: batting, bowling: bowling),
     );
   }
 }
 
 // ─── Wicket Sheet ─────────────────────────────────────────────────────────────
 
-class _WicketSheet extends StatefulWidget {
-  final WidgetRef ref;
+class _WicketSheet extends ConsumerStatefulWidget {
   final Team batting;
   final Team bowling;
-  const _WicketSheet({required this.ref, required this.batting, required this.bowling});
+  final VoidCallback onWicketConfirmed;
+  const _WicketSheet({required this.batting, required this.bowling, required this.onWicketConfirmed});
 
   @override
-  State<_WicketSheet> createState() => _WicketSheetState();
+  ConsumerState<_WicketSheet> createState() => _WicketSheetState();
 }
 
-class _WicketSheetState extends State<_WicketSheet> {
+class _WicketSheetState extends ConsumerState<_WicketSheet> {
   WicketType? selectedType;
   String? catcherId;
   String? runOutFielderId;
-  String? runOutPlayerId; // who got out - striker or non-striker
-  int runOutRuns = 0; // Runs physically completed before the run-out
+  String? runOutPlayerId;
+  int runOutRuns = 0;
 
   @override
   Widget build(BuildContext context) {
-    final state = widget.ref.read(matchProvider);
+    final state = ref.watch(matchProvider); // reactive to get latest striker/non-striker
     final striker = widget.batting.players.firstWhere((p) => p.id == state.strikerId, orElse: () => Player(id: '', name: '?'));
     final nonStriker = widget.batting.players.firstWhere((p) => p.id == state.nonStrikerId, orElse: () => Player(id: '', name: '?'));
 
@@ -587,7 +666,7 @@ class _WicketSheetState extends State<_WicketSheet> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: selectedType == null ? null : () {
-                  final notifier = widget.ref.read(matchProvider.notifier);
+                  final notifier = ref.read(matchProvider.notifier);
                   if (selectedType == WicketType.runOut) {
                     notifier.recordBall(runs: runOutRuns, wicket: WicketType.runOut, fielderId: runOutFielderId, outPlayerId: runOutPlayerId);
                   } else if (selectedType == WicketType.caught) {
@@ -596,8 +675,8 @@ class _WicketSheetState extends State<_WicketSheet> {
                     notifier.recordBall(runs: 0, wicket: selectedType!);
                   }
                   Navigator.pop(context);
-                  // Check last man solo
-                  _checkForLastMan(widget.ref, context);
+                  // Check last man solo using parent context via callback
+                  widget.onWicketConfirmed();
                 },
                 child: const Text('Confirm Wicket'),
               ),
@@ -606,38 +685,5 @@ class _WicketSheetState extends State<_WicketSheet> {
         ),
       ),
     );
-  }
-
-  void _checkForLastMan(WidgetRef ref, BuildContext context) {
-    final state = ref.read(matchProvider);
-    final match = state.currentMatch;
-    if (match == null) return;
-    final battingTeam = match.battingTeamFor(state.isInnings1);
-    if (ref.read(matchProvider.notifier).shouldPromptLastMan(battingTeam)) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (c) => AlertDialog(
-          title: const Text('Last man continues?'),
-          content: const Text('Only one batsman left. Continue solo?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                ref.read(matchProvider.notifier).setLastManSolo(true);
-                Navigator.pop(c);
-              },
-              child: const Text('YES'),
-            ),
-            TextButton(
-              onPressed: () {
-                ref.read(matchProvider.notifier).endInnings();
-                Navigator.pop(c);
-              },
-              child: const Text('NO'),
-            ),
-          ],
-        ),
-      );
-    }
   }
 }

@@ -154,8 +154,8 @@ class DatabaseService {
       final teamB = teamMap[json['teamB_id']];
       return Match(
         id: json['id'] as String,
-        teamA: teamA!,
-        teamB: teamB!,
+        teamA: teamA ?? Team(id: json['teamA_id'] as String, name: 'Deleted Team', players: []),
+        teamB: teamB ?? Team(id: json['teamB_id'] as String, name: 'Deleted Team', players: []),
         maxOvers: json['overs'] as int,
         tossWinnerId: json['toss_winner_id'] as String,
         tossWinnerBatsFirst: json['toss_winner_bats_first'] == 1,

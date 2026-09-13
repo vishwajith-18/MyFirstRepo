@@ -3,12 +3,10 @@ import 'models.dart';
 
 class Innings {
   final List<Ball> balls;
-  final List<String> playerIds; // Total players in team
   final int maxOvers;
 
   Innings({
     required this.balls,
-    required this.playerIds,
     required this.maxOvers,
   });
 
@@ -16,11 +14,6 @@ class Innings {
   int get totalWickets => balls.where((b) => b.wicket != null).length;
   
   int get legalBalls => balls.where((b) => !b.isWide && !b.isNoBall).length;
-  String get oversFormatted {
-    int overs = legalBalls ~/ 6;
-    int ballsInOver = legalBalls % 6;
-    return "$overs.$ballsInOver";
-  }
 
   Map<String, Map<String, dynamic>> calculateBatterStats(Team battingTeam) {
     final Map<String, Map<String, dynamic>> stats = {};
@@ -69,22 +62,22 @@ class Innings {
         stats[b.bowlerId]!['runs'] = (stats[b.bowlerId]!['runs'] as int) + b.teamRuns;
         if (b.wicket != null && b.wicket != WicketType.runOut) {
           stats[b.bowlerId]!['wickets'] = (stats[b.bowlerId]!['wickets'] as int) + 1;
-        }
       }
+    }
+    for (final bId in stats.keys) {
+      if ((stats[bId]!['runs'] as int) < 0) stats[bId]!['runs'] = 0;
     }
     return stats;
   }
 
   Map<String, dynamic> toMap() => {
     'balls': jsonEncode(balls.map((b) => b.toMap()).toList()),
-    'playerIds': playerIds,
     'maxOvers': maxOvers,
   };
 
   factory Innings.fromMap(Map<String, dynamic> map) {
     return Innings(
       balls: (jsonDecode(map['balls'] ?? '[]') as List).map((b) => Ball.fromMap(b)).toList(),
-      playerIds: List<String>.from(map['playerIds'] ?? []),
       maxOvers: map['maxOvers'] ?? 0,
     );
   }
@@ -147,19 +140,24 @@ class Match {
     );
   }
 
-  /// Returns the batting team for the given innings.
-  Team battingTeamFor(bool isInnings1) {
+  Team get teamBattingFirst {
     final tossWon = tossWinnerId == teamA.id ? teamA : teamB;
-    final tossLost = tossWon.id == teamA.id ? teamB : teamA;
-    final batsFirst = tossWinnerBatsFirst ? tossWon : tossLost;
-    final batsSecond = batsFirst.id == teamA.id ? teamB : teamA;
-    return isInnings1 ? batsFirst : batsSecond;
+    return tossWinnerBatsFirst ? tossWon : (tossWon.id == teamA.id ? teamB : teamA);
   }
 
-  /// Returns the bowling team for the given innings.
-  Team bowlingTeamFor(bool isInnings1) {
-    final batting = battingTeamFor(isInnings1);
-    return batting.id == teamA.id ? teamB : teamA;
+  Team battingTeamFor(bool isInnings1) =>
+      isInnings1 ? teamBattingFirst : (teamBattingFirst.id == teamA.id ? teamB : teamA);
+
+  Team bowlingTeamFor(bool isInnings1) =>
+      isInnings1 ? (teamBattingFirst.id == teamA.id ? teamB : teamA) : teamBattingFirst;
+
+  bool isGoldenOverActive(int currentLegalBalls) {
+    return goldenOver != null && (currentLegalBalls ~/ 6) + 1 == goldenOver;
+  }
+
+  int get targetForInnings2 {
+    final i1Score = innings1?.totalRuns ?? 0;
+    return i1Score > 0 ? i1Score + 1 : 1;
   }
 
   /// Human-readable match result string.
@@ -171,11 +169,39 @@ class Match {
       return '${battingTeamFor(true).name}: ${i1.totalRuns}/${i1.totalWickets}';
     }
     if (i2.totalRuns > i1.totalRuns) {
-      return '${battingTeamFor(false).name} won – chased ${i1.totalRuns + 1}, '
-          'scored ${i2.totalRuns}/${i2.totalWickets}';
+      final team = battingTeamFor(false);
+      int wicketsInHand = team.players.length - i2.totalWickets;
+      return '${team.name} won by $wicketsInHand wicket${wicketsInHand == 1 ? '' : 's'}';
     } else if (i1.totalRuns > i2.totalRuns) {
       return '${battingTeamFor(true).name} won by ${i1.totalRuns - i2.totalRuns} runs';
     }
     return 'Match Tied!';
   }
+}
+
+String getHowOutString(Map<String, dynamic> stat, List<Team> allTeams) {
+  Player? findPlayer(String id) {
+    for (final t in allTeams) {
+      for (final p in t.players) {
+        if (p.id == id) return p;
+      }
+    }
+    return null;
+  }
+
+  final typeStr = stat['howOut'] as String;
+  if (typeStr.isEmpty) return 'not out';
+  final type = WicketType.values.byName(typeStr);
+  final bowler = findPlayer(stat['bowlerId'])?.name ?? '';
+  final fielder = (stat['fielderId'] as String).isNotEmpty 
+      ? (findPlayer(stat['fielderId'])?.name ?? '') 
+      : '';
+
+  if (type == WicketType.caught) return fielder.isNotEmpty ? 'c $fielder b $bowler' : 'c & b $bowler';
+  if (type == WicketType.bowled) return 'b $bowler';
+  if (type == WicketType.runOut) return fielder.isNotEmpty ? 'run out ($fielder)' : 'run out';
+  if (type == WicketType.stumped) return 'st $fielder b $bowler';
+  if (type == WicketType.lbw) return 'lbw b $bowler';
+  if (type == WicketType.hitWicket) return 'hit wkt b $bowler';
+  return type.name;
 }

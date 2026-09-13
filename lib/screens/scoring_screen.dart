@@ -142,6 +142,7 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> with WidgetsBindi
                   style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
                 ),
               ),
+            // Fixed top section — score, timeline, player selectors
             ScoreboardView(balls: state.currentInningsBalls),
             CurrentOverTimeline(balls: state.currentInningsBalls),
             PlayerSelectionView(
@@ -151,7 +152,8 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> with WidgetsBindi
               dismissedIds: dismissedIds,
               lastOverBowlerId: lastOverBowlerId,
             ),
-            const Divider(),
+            const Divider(height: 1),
+            // Expanded scoring panel — fills remaining space, buttons never go off-screen
             const Expanded(child: ScoringControlPanel()),
           ],
         ),
@@ -177,7 +179,7 @@ class ScoreboardView extends StatelessWidget {
     String overs = "${legalBalls ~/ 6}.${legalBalls % 6}";
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
       color: Colors.blueAccent.withOpacity(0.1),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -185,15 +187,15 @@ class ScoreboardView extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Score', style: TextStyle(fontSize: 16, color: Colors.grey.shade400)),
-              Text('$runs/$wickets', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
+              Text('Score', style: TextStyle(fontSize: 13, color: Colors.grey.shade400)),
+              Text('$runs/$wickets', style: const TextStyle(fontSize: 38, fontWeight: FontWeight.bold)),
             ],
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('Overs', style: TextStyle(fontSize: 16, color: Colors.grey.shade400)),
-              Text(overs, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w600)),
+              Text('Overs', style: TextStyle(fontSize: 13, color: Colors.grey.shade400)),
+              Text(overs, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w600)),
             ],
           ),
         ],
@@ -432,45 +434,52 @@ class ScoringControlPanel extends ConsumerWidget {
     
     final isReady = state.strikerId.isNotEmpty && (state.isLastManSolo || state.nonStrikerId.isNotEmpty) && state.currentBowlerId.isNotEmpty;
 
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              alignment: WrapAlignment.center,
-              children: [0, 1, 2, 3, 4, 5, 6].map((run) {
-                return SizedBox(
-                  width: 80,
-                  height: 80,
-                  child: ElevatedButton(
-                    onPressed: isReady ? () => ref.read(matchProvider.notifier).recordBall(runs: run) : null,
-                    child: Text('$run', style: const TextStyle(fontSize: 24)),
-                  ),
-                );
-              }).toList(),
-            ),
+    // No SingleChildScrollView — entire panel is fixed inside Expanded.
+    // Column with spaceBetween keeps WIDE/NO BALL/WICKET always anchored at bottom.
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            alignment: WrapAlignment.center,
+            children: [0, 1, 2, 3, 4, 5, 6].map((run) {
+              return SizedBox(
+                width: 72,
+                height: 72,
+                child: ElevatedButton(
+                  onPressed: isReady ? () => ref.read(matchProvider.notifier).recordBall(runs: run) : null,
+                  child: Text('$run', style: const TextStyle(fontSize: 22)),
+                ),
+              );
+            }).toList(),
           ),
-          if (!isReady)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 8),
-              child: Text('Select Striker, Non-Striker & Bowler to score', style: TextStyle(color: Colors.orange)),
+        ),
+        // Bottom section — warning + action buttons always visible
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!isReady)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 6),
+                child: Text('Select Striker, Non-Striker & Bowler to score', style: TextStyle(color: Colors.orange, fontSize: 12)),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _actionButton('WIDE', Colors.orange.shade900, isReady ? () => showWidePopup(ref, context) : null),
+                  _actionButton('NO BALL', Colors.deepOrange.shade900, isReady ? () => showNoBallPopup(ref, context) : null),
+                  _actionButton('WICKET', Colors.red.shade900, isReady ? () => showWicketPopup(ref, context, battingTeam, bowlingTeam) : null),
+                ],
+              ),
             ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _actionButton('WIDE', Colors.orange.shade900, isReady ? () => showWidePopup(ref, context) : null),
-                _actionButton('NO BALL', Colors.deepOrange.shade900, isReady ? () => showNoBallPopup(ref, context) : null),
-                _actionButton('WICKET', Colors.red.shade900, isReady ? () => showWicketPopup(ref, context, battingTeam, bowlingTeam) : null),
-              ],
-            ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 

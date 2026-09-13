@@ -6,6 +6,7 @@ import 'match_setup_screen.dart';
 import 'scoring_screen.dart';
 import '../services/database_service.dart';
 import '../providers/match_provider.dart';
+import '../main.dart';
 import 'dart:convert';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -29,14 +30,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final stateJson = await DatabaseService.instance.getCurrentMatchState();
     if (!mounted) return;
     if (stateJson != null) {
-      // Check completion before showing resume button to avoid flash
       final map = jsonDecode(stateJson);
       final isComplete = map['isMatchComplete'] as bool? ?? false;
       final hasBalls = (map['currentInningsBalls'] as List?)?.isNotEmpty ?? false;
       if (!isComplete && hasBalls) {
         setState(() => _savedStateJson = stateJson);
       } else {
-        // Clean up stale completed/empty state
         await DatabaseService.instance.clearCurrentMatchState();
       }
     }
@@ -46,25 +45,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final stateJson = await DatabaseService.instance.getCurrentMatchState();
     if (stateJson != null) {
       if (!mounted) return;
-      
       final teams = await DatabaseService.instance.getAllTeams();
       if (!mounted) return;
-
-      final savedStateMap = jsonDecode(stateJson);
-      final savedState = MatchState.fromMap(savedStateMap, teams);
-      
-      // SILENTLY CLEAR IF EMPTY MATCH OR ALREADY COMPLETE
+      final savedState = MatchState.fromMap(jsonDecode(stateJson), teams);
       if ((savedState.currentInningsBalls.isEmpty && savedState.isInnings1) || savedState.isMatchComplete) {
         await DatabaseService.instance.clearCurrentMatchState();
         if (mounted) setState(() => _savedStateJson = null);
         return;
       }
-
       showDialog(
         context: context,
         builder: (c) => AlertDialog(
-          title: const Text('Resume Match?'),
-          content: const Text('An unfinished match was found. Would you like to resume?'),
+          backgroundColor: kBgCard,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: kGoldDark.withOpacity(0.5))),
+          title: const Text('Resume Match?', style: TextStyle(color: kGold, fontWeight: FontWeight.bold)),
+          content: const Text('An unfinished match was found. Would you like to resume?', style: TextStyle(color: kTextSecondary)),
           actions: [
             TextButton(
               onPressed: () {
@@ -72,11 +67,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 if (mounted) setState(() => _savedStateJson = null);
                 Navigator.pop(c);
               },
-              child: const Text('NO, DELETE'),
+              child: const Text('DELETE', style: TextStyle(color: Colors.redAccent)),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () => _resumeAction(c, stateJson),
-              child: const Text('YES, RESUME'),
+              child: const Text('RESUME'),
             ),
           ],
         ),
@@ -87,9 +82,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _resumeAction(BuildContext? dialogContext, String stateJson) async {
     final teams = await DatabaseService.instance.getAllTeams();
     if (!mounted) return;
-    
-    final savedStateMap = jsonDecode(stateJson);
-    final savedState = MatchState.fromMap(savedStateMap, teams);
+    final savedState = MatchState.fromMap(jsonDecode(stateJson), teams);
     ref.read(matchProvider.notifier).resumeMatch(savedState);
     if (dialogContext != null && dialogContext.mounted) Navigator.pop(dialogContext);
     if (mounted) Navigator.push(context, MaterialPageRoute(builder: (c) => const ScoringScreen()));
@@ -99,62 +92,196 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Icon(Icons.sports_cricket, size: 80, color: Colors.blueAccent),
-            const SizedBox(height: 16),
-            const Text(
-              'VISH_CRIC',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 48),
-            
-            if (_savedStateJson != null) ...[
-              ElevatedButton.icon(
-                onPressed: () => _resumeAction(null, _savedStateJson!),
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('RESUME SAVED MATCH'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade700,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF0F0F1A), kBgBlack],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                const SizedBox(height: 40),
+                // ─── Logo & Brand ────────────────────────────────────────────
+                Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const RadialGradient(colors: [kGoldDark, Color(0xFF1A1A00)]),
+                    border: Border.all(color: kGold.withOpacity(0.6), width: 2),
+                  ),
+                  child: const Icon(Icons.sports_cricket, size: 44, color: kGold),
                 ),
-              ),
-              TextButton.icon(
-                onPressed: () async {
-                  await DatabaseService.instance.clearCurrentMatchState();
-                  setState(() => _savedStateJson = null);
-                },
-                icon: const Icon(Icons.delete_outline, size: 16),
-                label: const Text('Delete Halted Match', style: TextStyle(fontSize: 12)),
-                style: TextButton.styleFrom(foregroundColor: Colors.red.shade300),
-              ),
-              const SizedBox(height: 24),
-            ],
+                const SizedBox(height: 16),
+                const Text(
+                  'VISH_CRIC',
+                  style: TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.w900,
+                    color: kGold,
+                    letterSpacing: 6,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'GULLY CRICKET SCORER',
+                  style: TextStyle(
+                    fontSize: 11,
+                    letterSpacing: 4,
+                    color: kTextSecondary.withOpacity(0.7),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 48),
 
-            ElevatedButton.icon(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const MatchSetupScreen())),
-              icon: const Icon(Icons.add_circle_outline),
-              label: const Text('Start New Match'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent.shade700),
+                // ─── Resume Banner ───────────────────────────────────────────
+                if (_savedStateJson != null) ...[
+                  _ResumeBanner(
+                    onResume: () => _resumeAction(null, _savedStateJson!),
+                    onDelete: () async {
+                      await DatabaseService.instance.clearCurrentMatchState();
+                      setState(() => _savedStateJson = null);
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                // ─── Main Actions ────────────────────────────────────────────
+                _HomeButton(
+                  icon: Icons.add_circle_outline_rounded,
+                  label: 'Start New Match',
+                  gradient: const LinearGradient(colors: [kGoldDark, kGold]),
+                  textColor: kBgBlack,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const MatchSetupScreen())),
+                ),
+                const SizedBox(height: 14),
+                _HomeButton(
+                  icon: Icons.groups_rounded,
+                  label: 'Manage Teams',
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const TeamListScreen())),
+                ),
+                const SizedBox(height: 14),
+                _HomeButton(
+                  icon: Icons.history_rounded,
+                  label: 'Match History',
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const MatchHistoryScreen())),
+                ),
+                const Spacer(),
+              ],
             ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const TeamListScreen())),
-              icon: const Icon(Icons.group),
-              label: const Text('Manage Teams'),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Resume Banner ─────────────────────────────────────────────────────────────
+
+class _ResumeBanner extends StatelessWidget {
+  final VoidCallback onResume;
+  final VoidCallback onDelete;
+  const _ResumeBanner({required this.onResume, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: kBgCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kGold.withOpacity(0.4), width: 1),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: kGoldDark.withOpacity(0.2),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const MatchHistoryScreen())),
-              icon: const Icon(Icons.history),
-              label: const Text('Match History'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey.shade800),
+            child: const Icon(Icons.pause_circle_filled, color: kGold, size: 22),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Match Paused', style: TextStyle(color: kGold, fontWeight: FontWeight.bold, fontSize: 13)),
+                SizedBox(height: 2),
+                Text('Tap to continue from where you left off', style: TextStyle(color: kTextSecondary, fontSize: 11)),
+              ],
             ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: onResume,
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('RESUME', style: TextStyle(fontSize: 12)),
+          ),
+          const SizedBox(width: 6),
+          IconButton(
+            onPressed: onDelete,
+            icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+            tooltip: 'Delete saved match',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Home Button ───────────────────────────────────────────────────────────────
+
+class _HomeButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Gradient? gradient;
+  final Color textColor;
+
+  const _HomeButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.gradient,
+    this.textColor = kTextPrimary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 56,
+        decoration: BoxDecoration(
+          gradient: gradient,
+          color: gradient == null ? kBgCard : null,
+          borderRadius: BorderRadius.circular(14),
+          border: gradient == null ? Border.all(color: kGoldDark.withOpacity(0.3), width: 1) : null,
+        ),
+        child: Row(
+          children: [
+            const SizedBox(width: 18),
+            Icon(icon, color: textColor, size: 22),
+            const SizedBox(width: 14),
+            Text(
+              label,
+              style: TextStyle(color: textColor, fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 0.3),
+            ),
+            const Spacer(),
+            Icon(Icons.arrow_forward_ios_rounded, color: textColor.withOpacity(0.5), size: 14),
+            const SizedBox(width: 16),
           ],
         ),
       ),

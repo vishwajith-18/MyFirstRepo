@@ -4,6 +4,7 @@ import '../providers/team_provider.dart';
 import '../providers/match_provider.dart';
 import '../models/match_model.dart';
 import 'scoring_screen.dart';
+import '../main.dart';
 import 'package:uuid/uuid.dart';
 
 class MatchSetupScreen extends ConsumerStatefulWidget {
@@ -26,138 +27,229 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
   Widget build(BuildContext context) {
     final teams = ref.watch(teamProvider);
 
+    final bool canStart = teamAId != null &&
+        teamBId != null &&
+        tossWinnerId != null &&
+        tossWinnerChoseBat != null &&
+        overs != null &&
+        overs! > 0 &&
+        overs! <= 50 &&
+        (!isGoldenOverEnabled || (goldenOverNumber != null && goldenOverNumber! >= 1 && goldenOverNumber! <= overs!));
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Match Setup')),
+      appBar: AppBar(
+        title: const Text('Match Setup'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: kGoldDark.withOpacity(0.3)),
+        ),
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            DropdownButtonFormField<String>(
+            // ─── Teams ──────────────────────────────────────────────────────
+            _sectionLabel('SELECT TEAMS'),
+            const SizedBox(height: 10),
+            _goldDropdown<String>(
+              label: 'Team A',
               value: teamAId,
-              decoration: const InputDecoration(labelText: 'Team A'),
               items: teams.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
               onChanged: (v) => setState(() => teamAId = v),
             ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
+            const SizedBox(height: 12),
+            _goldDropdown<String>(
+              label: 'Team B',
               value: teamBId,
-              decoration: const InputDecoration(labelText: 'Team B'),
               items: teams.where((t) => t.id != teamAId).map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
               onChanged: (v) => setState(() => teamBId = v),
             ),
-            const SizedBox(height: 24),
+
+            // ─── Toss ────────────────────────────────────────────────────────
             if (teamAId != null && teamBId != null) ...[
-              const Text('Toss Result', style: TextStyle(fontWeight: FontWeight.bold)),
-              RadioListTile<String>(
-                title: Text(teams.firstWhere((t) => t.id == teamAId).name),
-                value: teamAId!,
-                groupValue: tossWinnerId,
-                onChanged: (v) => setState(() => tossWinnerId = v),
-              ),
-              RadioListTile<String>(
-                title: Text(teams.firstWhere((t) => t.id == teamBId).name),
-                value: teamBId!,
-                groupValue: tossWinnerId,
-                onChanged: (v) => setState(() => tossWinnerId = v),
+              const SizedBox(height: 24),
+              _sectionLabel('TOSS RESULT'),
+              const SizedBox(height: 8),
+              _goldCard(
+                child: Column(
+                  children: [
+                    _tossRadio(teams.firstWhere((t) => t.id == teamAId).name, teamAId!),
+                    const Divider(height: 1),
+                    _tossRadio(teams.firstWhere((t) => t.id == teamBId).name, teamBId!),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
-              const Text('Decision', style: TextStyle(fontWeight: FontWeight.bold)),
+              _sectionLabel('DECISION'),
+              const SizedBox(height: 10),
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: tossWinnerChoseBat == true ? Colors.blue : Colors.grey[300],
-                      foregroundColor: tossWinnerChoseBat == true ? Colors.white : Colors.black,
-                    ),
-                    onPressed: tossWinnerId == null ? null : () => setState(() => tossWinnerChoseBat = true),
-                    child: const Text('BAT'),
-                  ),
-                  const SizedBox(width: 16),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: tossWinnerChoseBat == false ? Colors.blue : Colors.grey[300],
-                      foregroundColor: tossWinnerChoseBat == false ? Colors.white : Colors.black,
-                    ),
-                    onPressed: tossWinnerId == null ? null : () => setState(() => tossWinnerChoseBat = false),
-                    child: const Text('BOWL'),
-                  ),
+                  Expanded(child: _choiceButton('BAT 🏏', tossWinnerChoseBat == true, tossWinnerId != null ? () => setState(() => tossWinnerChoseBat = true) : null)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _choiceButton('BOWL 🥎', tossWinnerChoseBat == false, tossWinnerId != null ? () => setState(() => tossWinnerChoseBat = false) : null)),
                 ],
               ),
             ],
-            const SizedBox(height: 16),
-            TextField(
+
+            // ─── Overs ───────────────────────────────────────────────────────
+            const SizedBox(height: 24),
+            _sectionLabel('MATCH OVERS'),
+            const SizedBox(height: 10),
+            TextFormField(
               decoration: InputDecoration(
-                labelText: 'Number of Overs (1-50)', 
-                border: const OutlineInputBorder(),
-                errorText: (overs != null && (overs! < 1 || overs! > 50)) ? 'Must be between 1 and 50' : null,
+                labelText: 'Number of Overs (1–50)',
+                errorText: (overs != null && (overs! < 1 || overs! > 50)) ? 'Must be 1–50' : null,
+                prefixIcon: const Icon(Icons.timer_outlined, color: kGold, size: 20),
               ),
+              style: const TextStyle(color: kTextPrimary),
               keyboardType: TextInputType.number,
               onChanged: (v) {
                 setState(() {
                   overs = int.tryParse(v);
-                  if (overs != null && goldenOverNumber != null && goldenOverNumber! > overs!) {
-                    goldenOverNumber = null;
-                  }
+                  if (overs != null && goldenOverNumber != null && goldenOverNumber! > overs!) goldenOverNumber = null;
                 });
               },
             ),
+
+            // ─── Golden Over ─────────────────────────────────────────────────
             const SizedBox(height: 16),
-            SwitchListTile(
-              title: const Text('Enable GOLDEN OVER'),
-              subtitle: const Text('Doubled runs and wicket penalties'),
-              value: isGoldenOverEnabled,
-              onChanged: (v) => setState(() => isGoldenOverEnabled = v),
-            ),
-            if (isGoldenOverEnabled)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  decoration: InputDecoration(
-                    labelText: 'Golden Over Number (1-${overs ?? 50})',
-                    border: const OutlineInputBorder(),
-                    errorText: (goldenOverNumber != null && overs != null && (goldenOverNumber! < 1 || goldenOverNumber! > overs!))
-                        ? 'Must be between 1 and $overs'
-                        : null,
+            _goldCard(
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    title: const Text('⭐ Golden Over', style: TextStyle(color: kGold, fontWeight: FontWeight.bold)),
+                    subtitle: const Text('Doubled runs · Wicket penalties', style: TextStyle(color: kTextSecondary, fontSize: 12)),
+                    value: isGoldenOverEnabled,
+                    onChanged: (v) => setState(() => isGoldenOverEnabled = v),
+                    contentPadding: EdgeInsets.zero,
                   ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) => setState(() => goldenOverNumber = int.tryParse(v)),
+                  if (isGoldenOverEnabled) ...[
+                    const Divider(height: 1),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: 'Golden Over Number (1–${overs ?? 50})',
+                        errorText: (goldenOverNumber != null && overs != null && (goldenOverNumber! < 1 || goldenOverNumber! > overs!))
+                            ? 'Must be 1–$overs'
+                            : null,
+                        prefixIcon: const Icon(Icons.star_rounded, color: kGold, size: 20),
+                      ),
+                      style: const TextStyle(color: kTextPrimary),
+                      keyboardType: TextInputType.number,
+                      onChanged: (v) => setState(() => goldenOverNumber = int.tryParse(v)),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ],
+              ),
+            ),
+
+            // ─── Start Button ─────────────────────────────────────────────────
+            const SizedBox(height: 36),
+            AnimatedOpacity(
+              opacity: canStart ? 1.0 : 0.4,
+              duration: const Duration(milliseconds: 200),
+              child: GestureDetector(
+                onTap: canStart ? () {
+                  final teamA = teams.firstWhere((t) => t.id == teamAId);
+                  final teamB = teams.firstWhere((t) => t.id == teamBId);
+                  final match = Match(
+                    id: const Uuid().v4(),
+                    teamA: teamA,
+                    teamB: teamB,
+                    maxOvers: overs!,
+                    tossWinnerId: tossWinnerId!,
+                    tossWinnerBatsFirst: tossWinnerChoseBat!,
+                    date: DateTime.now(),
+                    goldenOver: isGoldenOverEnabled ? goldenOverNumber : null,
+                  );
+                  ref.read(matchProvider.notifier).startMatch(match);
+                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (c) => const ScoringScreen()));
+                } : null,
+                child: Container(
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: canStart ? const LinearGradient(colors: [kGoldDark, kGold]) : null,
+                    color: canStart ? null : kBgSurface,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'START SCORING',
+                      style: TextStyle(color: kBgBlack, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1),
+                    ),
+                  ),
                 ),
               ),
-            const SizedBox(height: 48),
-            ElevatedButton(
-              onPressed: (teamAId != null && 
-                          teamBId != null && 
-                          tossWinnerId != null && 
-                          tossWinnerChoseBat != null && 
-                          overs != null && 
-                          overs! > 0 &&
-                          overs! <= 50 &&
-                          (!isGoldenOverEnabled || (goldenOverNumber != null && goldenOverNumber! >= 1 && goldenOverNumber! <= overs!)))
-                ? () {
-                    final teamA = teams.firstWhere((t) => t.id == teamAId);
-                    final teamB = teams.firstWhere((t) => t.id == teamBId);
-                    
-                    final match = Match(
-                      id: const Uuid().v4(),
-                      teamA: teamA,
-                      teamB: teamB,
-                      maxOvers: overs!,
-                      tossWinnerId: tossWinnerId!,
-                      tossWinnerBatsFirst: tossWinnerChoseBat!,
-                      date: DateTime.now(),
-                      goldenOver: isGoldenOverEnabled ? goldenOverNumber : null,
-                    );
-                    
-                    ref.read(matchProvider.notifier).startMatch(match);
-                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (c) => const ScoringScreen()));
-                  }
-                : null, // Disabled until all fields are filled
-              child: const Center(child: Text('Start Scoring')),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _sectionLabel(String text) => Text(
+    text,
+    style: const TextStyle(color: kGoldDark, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 2),
+  );
+
+  Widget _goldCard({required Widget child}) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    decoration: BoxDecoration(
+      color: kBgCard,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: kGoldDark.withOpacity(0.3)),
+    ),
+    child: child,
+  );
+
+  Widget _tossRadio(String name, String value) => RadioListTile<String>(
+    title: Text(name, style: const TextStyle(color: kTextPrimary, fontSize: 14)),
+    value: value,
+    groupValue: tossWinnerId,
+    onChanged: (v) => setState(() => tossWinnerId = v),
+    contentPadding: EdgeInsets.zero,
+    dense: true,
+  );
+
+  Widget _choiceButton(String label, bool selected, VoidCallback? onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 48,
+        decoration: BoxDecoration(
+          gradient: selected ? const LinearGradient(colors: [kGoldDark, kGold]) : null,
+          color: selected ? null : kBgCard,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: selected ? kGold : kGoldDark.withOpacity(0.3)),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? kBgBlack : kTextSecondary,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _goldDropdown<T>({required String label, required T? value, required List<DropdownMenuItem<T>> items, required ValueChanged<T?> onChanged}) {
+    return DropdownButtonFormField<T>(
+      value: value,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: const Icon(Icons.groups_rounded, color: kGold, size: 20),
+      ),
+      dropdownColor: kBgSurface,
+      style: const TextStyle(color: kTextPrimary),
+      items: items,
+      onChanged: onChanged,
     );
   }
 }

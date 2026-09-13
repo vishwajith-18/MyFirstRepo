@@ -103,7 +103,7 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
                 errorText: (overs != null && (overs! < 1 || overs! > 50)) ? 'Must be 1–50' : null,
                 prefixIcon: const Icon(Icons.timer_outlined, color: AppTheme.kGold, size: 20),
               ),
-              style: const TextStyle(color: kTextPrimary),
+              style: const TextStyle(color: AppTheme.kTextPrimary),
               keyboardType: TextInputType.number,
               onChanged: (v) {
                 setState(() {
@@ -136,7 +136,7 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
                             : null,
                         prefixIcon: const Icon(Icons.star_rounded, color: AppTheme.kGold, size: 20),
                       ),
-                      style: const TextStyle(color: kTextPrimary),
+                      style: const TextStyle(color: AppTheme.kTextPrimary),
                       keyboardType: TextInputType.number,
                       onChanged: (v) => setState(() => goldenOverNumber = int.tryParse(v)),
                     ),
@@ -206,7 +206,7 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
   );
 
   Widget _tossRadio(String name, String value) => RadioListTile<String>(
-    title: Text(name, style: const TextStyle(color: kTextPrimary, fontSize: 14)),
+    title: Text(name, style: const TextStyle(color: AppTheme.kTextPrimary, fontSize: 14)),
     value: value,
     groupValue: tossWinnerId,
     onChanged: (v) => setState(() => tossWinnerId = v),
@@ -248,7 +248,7 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
         prefixIcon: const Icon(Icons.groups_rounded, color: AppTheme.kGold, size: 20),
       ),
       dropdownColor: AppTheme.kBgSurface,
-      style: const TextStyle(color: kTextPrimary),
+      style: const TextStyle(color: AppTheme.kTextPrimary),
       items: items,
       onChanged: onChanged,
     );

@@ -256,7 +256,7 @@ class _HomeButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.gradient,
-    this.textColor = kTextPrimary,
+    this.textColor = AppTheme.kTextPrimary,
   });
 
   @override

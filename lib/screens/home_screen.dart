@@ -6,7 +6,8 @@ import 'match_setup_screen.dart';
 import 'scoring_screen.dart';
 import '../services/database_service.dart';
 import '../providers/match_provider.dart';
-import '../main.dart';
+import '../theme/app_theme.dart';
+
 import 'dart:convert';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -56,10 +57,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       showDialog(
         context: context,
         builder: (c) => AlertDialog(
-          backgroundColor: kBgCard,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: kGoldDark.withOpacity(0.5))),
-          title: const Text('Resume Match?', style: TextStyle(color: kGold, fontWeight: FontWeight.bold)),
-          content: const Text('An unfinished match was found. Would you like to resume?', style: TextStyle(color: kTextSecondary)),
+          backgroundColor: AppTheme.kBgCard,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: AppTheme.kGoldDark.withOpacity(0.5))),
+          title: const Text('Resume Match?', style: TextStyle(color: AppTheme.kGold, fontWeight: FontWeight.bold)),
+          content: const Text('An unfinished match was found. Would you like to resume?', style: TextStyle(color: AppTheme.kTextSecondary)),
           actions: [
             TextButton(
               onPressed: () {
@@ -96,7 +97,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF0F0F1A), kBgBlack],
+            colors: [Color(0xFF0F0F1A), AppTheme.kBgBlack],
           ),
         ),
         child: SafeArea(
@@ -111,10 +112,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   height: 88,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: const RadialGradient(colors: [kGoldDark, Color(0xFF1A1A00)]),
-                    border: Border.all(color: kGold.withOpacity(0.6), width: 2),
+                    gradient: const RadialGradient(colors: [AppTheme.kGoldDark, Color(0xFF1A1A00)]),
+                    border: Border.all(color: AppTheme.kGold.withOpacity(0.6), width: 2),
                   ),
-                  child: const Icon(Icons.sports_cricket, size: 44, color: kGold),
+                  child: const Icon(Icons.sports_cricket, size: 44, color: AppTheme.kGold),
                 ),
                 const SizedBox(height: 16),
                 const Text(
@@ -122,7 +123,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   style: TextStyle(
                     fontSize: 30,
                     fontWeight: FontWeight.w900,
-                    color: kGold,
+                    color: AppTheme.kGold,
                     letterSpacing: 6,
                   ),
                 ),
@@ -132,7 +133,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   style: TextStyle(
                     fontSize: 11,
                     letterSpacing: 4,
-                    color: kTextSecondary.withOpacity(0.7),
+                    color: AppTheme.kTextSecondary.withOpacity(0.7),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -154,8 +155,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 _HomeButton(
                   icon: Icons.add_circle_outline_rounded,
                   label: 'Start New Match',
-                  gradient: const LinearGradient(colors: [kGoldDark, kGold]),
-                  textColor: kBgBlack,
+                  gradient: const LinearGradient(colors: [AppTheme.kGoldDark, AppTheme.kGold]),
+                  textColor: AppTheme.kBgBlack,
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const MatchSetupScreen())),
                 ),
                 const SizedBox(height: 14),
@@ -191,9 +192,9 @@ class _ResumeBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: kBgCard,
+        color: AppTheme.kBgCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kGold.withOpacity(0.4), width: 1),
+        border: Border.all(color: AppTheme.kGold.withOpacity(0.4), width: 1),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
@@ -201,19 +202,19 @@ class _ResumeBanner extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: kGoldDark.withOpacity(0.2),
+              color: AppTheme.kGoldDark.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.pause_circle_filled, color: kGold, size: 22),
+            child: const Icon(Icons.pause_circle_filled, color: AppTheme.kGold, size: 22),
           ),
           const SizedBox(width: 12),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Match Paused', style: TextStyle(color: kGold, fontWeight: FontWeight.bold, fontSize: 13)),
+                Text('Match Paused', style: TextStyle(color: AppTheme.kGold, fontWeight: FontWeight.bold, fontSize: 13)),
                 SizedBox(height: 2),
-                Text('Tap to continue from where you left off', style: TextStyle(color: kTextSecondary, fontSize: 11)),
+                Text('Tap to continue from where you left off', style: TextStyle(color: AppTheme.kTextSecondary, fontSize: 11)),
               ],
             ),
           ),
@@ -266,9 +267,9 @@ class _HomeButton extends StatelessWidget {
         height: 56,
         decoration: BoxDecoration(
           gradient: gradient,
-          color: gradient == null ? kBgCard : null,
+          color: gradient == null ? AppTheme.kBgCard : null,
           borderRadius: BorderRadius.circular(14),
-          border: gradient == null ? Border.all(color: kGoldDark.withOpacity(0.3), width: 1) : null,
+          border: gradient == null ? Border.all(color: AppTheme.kGoldDark.withOpacity(0.3), width: 1) : null,
         ),
         child: Row(
           children: [

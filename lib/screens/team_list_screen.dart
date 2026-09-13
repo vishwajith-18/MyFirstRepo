@@ -4,11 +4,7 @@ import '../providers/team_provider.dart';
 import 'add_team_screen.dart';
 import 'match_setup_screen.dart';
 
-const kGold       = Color(0xFFFFD700);
-const kGoldLight  = Color(0xFFFFE566);
-const kBgBlack    = Color(0xFF0A0A0F);
-const kBgCard     = Color(0xFF13131A);
-const kBgSurface  = Color(0xFF1C1C28);
+import '../theme/app_theme.dart';
 
 class TeamListScreen extends ConsumerWidget {
   const TeamListScreen({super.key});
@@ -18,16 +14,16 @@ class TeamListScreen extends ConsumerWidget {
     final teams = ref.watch(teamProvider);
 
     return Scaffold(
-      backgroundColor: kBgBlack,
+      backgroundColor: AppTheme.kBgBlack,
       appBar: AppBar(
-        backgroundColor: kBgBlack,
+        backgroundColor: AppTheme.kBgBlack,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        title: const Text('Manage Teams', style: TextStyle(color: kGold, fontWeight: FontWeight.bold)),
+        title: const Text('Manage Teams', style: TextStyle(color: AppTheme.kGold, fontWeight: FontWeight.bold)),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: kGold,
-        foregroundColor: kBgBlack,
+        backgroundColor: AppTheme.kGold,
+        foregroundColor: AppTheme.kBgBlack,
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const AddTeamScreen())),
         child: const Icon(Icons.add, size: 28),
       ),
@@ -41,17 +37,17 @@ class TeamListScreen extends ConsumerWidget {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
-                    color: kBgCard,
+                    color: AppTheme.kBgCard,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: const Color(0x33FFD700)),
                   ),
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     leading: CircleAvatar(
-                      backgroundColor: kBgSurface,
+                      backgroundColor: AppTheme.kBgSurface,
                       child: Text(
                         team.name.isNotEmpty ? team.name[0].toUpperCase() : 'T',
-                        style: const TextStyle(color: kGold, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: AppTheme.kGold, fontWeight: FontWeight.bold),
                       ),
                     ),
                     title: Text(team.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
@@ -60,7 +56,7 @@ class TeamListScreen extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.edit_note, color: kGoldLight, size: 24),
+                          icon: const Icon(Icons.edit_note, color: AppTheme.kGoldLight, size: 24),
                           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => AddTeamScreen(existingTeam: team))),
                         ),
                         IconButton(
@@ -80,8 +76,8 @@ class TeamListScreen extends ConsumerWidget {
                 height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: kGold,
-                    foregroundColor: kBgBlack,
+                    backgroundColor: AppTheme.kGold,
+                    foregroundColor: AppTheme.kBgBlack,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const MatchSetupScreen())),

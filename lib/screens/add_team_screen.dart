@@ -5,11 +5,7 @@ import '../models/models.dart';
 import '../services/database_service.dart';
 import 'package:uuid/uuid.dart';
 
-const kGold       = Color(0xFFFFD700);
-const kGoldLight  = Color(0xFFFFE566);
-const kBgBlack    = Color(0xFF0A0A0F);
-const kBgCard     = Color(0xFF13131A);
-const kBgSurface  = Color(0xFF1C1C28);
+import '../theme/app_theme.dart';
 
 class AddTeamScreen extends ConsumerStatefulWidget {
   final Team? existingTeam;
@@ -49,22 +45,22 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
       labelText: label,
       labelStyle: const TextStyle(color: Colors.white60, fontSize: 13),
       filled: true,
-      fillColor: kBgCard,
+      fillColor: AppTheme.kBgCard,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0x33FFD700))),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0x33FFD700))),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kGold, width: 1.5)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.kGold, width: 1.5)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBgBlack,
+      backgroundColor: AppTheme.kBgBlack,
       appBar: AppBar(
-        backgroundColor: kBgBlack,
+        backgroundColor: AppTheme.kBgBlack,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        title: Text(widget.existingTeam != null ? 'Edit Team' : 'Add New Team', style: const TextStyle(color: kGold, fontWeight: FontWeight.bold)),
+        title: Text(widget.existingTeam != null ? 'Edit Team' : 'Add New Team', style: const TextStyle(color: AppTheme.kGold, fontWeight: FontWeight.bold)),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -77,7 +73,7 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
               decoration: _inputDeco('Team Name'),
             ),
             const SizedBox(height: 24),
-            const Text('Player Roster (4 - 12 players)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kGold)),
+            const Text('Player Roster (4 - 12 players)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.kGold)),
             const SizedBox(height: 12),
             ...List.generate(_playerControllers.length, (index) {
               return Padding(
@@ -93,8 +89,8 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
               Center(
                 child: TextButton.icon(
                   onPressed: _addPlayerField,
-                  icon: const Icon(Icons.add, color: kGold),
-                  label: const Text('Add Another Player', style: TextStyle(color: kGold, fontWeight: FontWeight.bold)),
+                  icon: const Icon(Icons.add, color: AppTheme.kGold),
+                  label: const Text('Add Another Player', style: TextStyle(color: AppTheme.kGold, fontWeight: FontWeight.bold)),
                 ),
               ),
             const SizedBox(height: 24),
@@ -103,8 +99,8 @@ class _AddTeamScreenState extends ConsumerState<AddTeamScreen> {
               height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: kGold,
-                  foregroundColor: kBgBlack,
+                  backgroundColor: AppTheme.kGold,
+                  foregroundColor: AppTheme.kBgBlack,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () async {

@@ -6,11 +6,7 @@ import '../providers/match_provider.dart';
 import '../services/pdf_service.dart';
 import 'scorecard_screen.dart';
 
-const kGold       = Color(0xFFFFD700);
-const kGoldLight  = Color(0xFFFFE566);
-const kBgBlack    = Color(0xFF0A0A0F);
-const kBgCard     = Color(0xFF13131A);
-const kBgSurface  = Color(0xFF1C1C28);
+import '../theme/app_theme.dart';
 
 class MatchHistoryScreen extends ConsumerStatefulWidget {
   const MatchHistoryScreen({super.key});
@@ -47,12 +43,12 @@ class _MatchHistoryScreenState extends ConsumerState<MatchHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBgBlack,
+      backgroundColor: AppTheme.kBgBlack,
       appBar: AppBar(
-        backgroundColor: kBgBlack,
+        backgroundColor: AppTheme.kBgBlack,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        title: const Text('Match History', style: TextStyle(color: kGold, fontWeight: FontWeight.bold)),
+        title: const Text('Match History', style: TextStyle(color: AppTheme.kGold, fontWeight: FontWeight.bold)),
       ),
       body: FutureBuilder<List<Match>>(
         future: _matchesFuture,
@@ -60,7 +56,7 @@ class _MatchHistoryScreenState extends ConsumerState<MatchHistoryScreen> {
           if (snapshot.hasError) {
             return Center(child: Text('Error loading matches: ${snapshot.error}', style: const TextStyle(color: Colors.redAccent)));
           }
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kGold));
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: AppTheme.kGold));
           final matches = snapshot.data!;
           if (matches.isEmpty) return const Center(child: Text('No recent matches found', style: TextStyle(color: Colors.white54, fontSize: 16)));
 
@@ -74,7 +70,7 @@ class _MatchHistoryScreenState extends ConsumerState<MatchHistoryScreen> {
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: kBgCard,
+                  color: AppTheme.kBgCard,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: const Color(0x33FFD700)),
                 ),
@@ -90,7 +86,7 @@ class _MatchHistoryScreenState extends ConsumerState<MatchHistoryScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.picture_as_pdf, color: kGoldLight, size: 22),
+                        icon: const Icon(Icons.picture_as_pdf, color: AppTheme.kGoldLight, size: 22),
                         onPressed: () => PDFService.generateScorecard(m),
                         tooltip: 'Download PDF',
                       ),
@@ -99,8 +95,8 @@ class _MatchHistoryScreenState extends ConsumerState<MatchHistoryScreen> {
                         onPressed: () => showDialog(
                           context: context,
                           builder: (c) => AlertDialog(
-                            backgroundColor: kBgSurface,
-                            title: const Text('Delete Match?', style: TextStyle(color: kGold, fontWeight: FontWeight.bold)),
+                            backgroundColor: AppTheme.kBgSurface,
+                            title: const Text('Delete Match?', style: TextStyle(color: AppTheme.kGold, fontWeight: FontWeight.bold)),
                             content: const Text('This will permanently remove this match record.', style: TextStyle(color: Colors.white70)),
                             actions: [
                               TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel', style: TextStyle(color: Colors.white54))),

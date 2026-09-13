@@ -5,12 +5,7 @@ import '../models/match_model.dart';
 import '../models/models.dart';
 import '../services/pdf_service.dart';
 
-const kGold       = Color(0xFFFFD700);
-const kGoldLight  = Color(0xFFFFE566);
-const kGoldDark   = Color(0xFFB8860B);
-const kBgBlack    = Color(0xFF0A0A0F);
-const kBgCard     = Color(0xFF13131A);
-const kBgSurface  = Color(0xFF1C1C28);
+import '../theme/app_theme.dart';
 
 class ScorecardScreen extends ConsumerWidget {
   const ScorecardScreen({super.key});
@@ -22,21 +17,21 @@ class ScorecardScreen extends ConsumerWidget {
 
     if (match == null) {
       return Scaffold(
-        backgroundColor: kBgBlack,
-        appBar: AppBar(title: const Text('Scorecard', style: TextStyle(color: kGold))),
+        backgroundColor: AppTheme.kBgBlack,
+        appBar: AppBar(title: const Text('Scorecard', style: TextStyle(color: AppTheme.kGold))),
         body: const Center(child: Text('No match data', style: TextStyle(color: Colors.white70))),
       );
     }
 
     return Scaffold(
-      backgroundColor: kBgBlack,
+      backgroundColor: AppTheme.kBgBlack,
       appBar: AppBar(
-        backgroundColor: kBgBlack,
+        backgroundColor: AppTheme.kBgBlack,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        title: Text('${match.teamA.name} vs ${match.teamB.name}', style: const TextStyle(color: kGold, fontWeight: FontWeight.bold)),
+        title: Text('${match.teamA.name} vs ${match.teamB.name}', style: const TextStyle(color: AppTheme.kGold, fontWeight: FontWeight.bold)),
         leading: IconButton(
-          icon: const Icon(Icons.home, color: kGold),
+          icon: const Icon(Icons.home, color: AppTheme.kGold),
           tooltip: 'Return Home',
           onPressed: () async {
             if (state.isMatchComplete) {
@@ -47,7 +42,7 @@ class ScorecardScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.picture_as_pdf, color: kGoldLight),
+            icon: const Icon(Icons.picture_as_pdf, color: AppTheme.kGoldLight),
             tooltip: 'Download PDF Scorecard',
             onPressed: () => PDFService.generateScorecard(match),
           ),
@@ -104,28 +99,28 @@ class _MatchResultBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: kBgCard,
+        color: AppTheme.kBgCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kGold, width: 1.5),
+        border: Border.all(color: AppTheme.kGold, width: 1.5),
         boxShadow: const [
           BoxShadow(color: Color(0x33FFD700), blurRadius: 10, offset: Offset(0, 2)),
         ],
       ),
       child: Column(
         children: [
-          const Text('🏆 MATCH RESULT', style: TextStyle(fontSize: 12, letterSpacing: 2, color: kGold, fontWeight: FontWeight.bold)),
+          const Text('🏆 MATCH RESULT', style: TextStyle(fontSize: 12, letterSpacing: 2, color: AppTheme.kGold, fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
           Text(result, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white), textAlign: TextAlign.center),
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: kBgSurface,
+              color: AppTheme.kBgSurface,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               '${match.teamA.name}: ${i1.totalRuns}/${i1.totalWickets}  |  ${match.teamB.name}: ${i2?.totalRuns ?? '-'}/${i2?.totalWickets ?? '-'}',
-              style: const TextStyle(fontSize: 13, color: kGoldLight, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: 13, color: AppTheme.kGoldLight, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -152,14 +147,14 @@ class _InningsScorecardView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: kBgCard,
+        color: AppTheme.kBgCard,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0x22FFD700)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kGold)),
+          Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.kGold)),
           const SizedBox(height: 12),
           // Batting Table
           Table(
@@ -175,17 +170,17 @@ class _InningsScorecardView extends StatelessWidget {
             children: [
               _headerRow(['Batter', 'R', 'B', '4s', '6s', 'SR', 'W']),
               ...batterStats.entries.where((e) {
-                final b = e.value['balls'] as int;
-                final dismissed = e.value['dismissed'] as bool;
+                final b = e.value.balls;
+                final dismissed = e.value.dismissed;
                 return b > 0 || dismissed;
               }).map((e) {
                 final p = battingTeam.players.firstWhere((x) => x.id == e.key, orElse: () => Player(id: '', name: '?'));
-                final r = e.value['runs'] as int;
-                final b = e.value['balls'] as int;
-                final fours = e.value['4s'] as int;
-                final sixes = e.value['6s'] as int;
+                final r = e.value.runs;
+                final b = e.value.balls;
+                final fours = e.value.fours;
+                final sixes = e.value.sixes;
                 final sr = b > 0 ? (r / b * 100).toStringAsFixed(1) : '-';
-                final howOut = e.value['dismissed'] as bool
+                final howOut = e.value.dismissed
                     ? getHowOutString(e.value, allTeams)
                     : 'not out';
                 return _dataRow([p.name, '$r', '$b', '$fours', '$sixes', sr, howOut]);
@@ -193,19 +188,19 @@ class _InningsScorecardView extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 18),
-          const Text('Bowling', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kGoldLight)),
+          const Text('Bowling', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.kGoldLight)),
           const SizedBox(height: 8),
           // Bowling Table
           Table(
             columnWidths: const {0: FlexColumnWidth(3), 1: FlexColumnWidth(1), 2: FlexColumnWidth(1), 3: FlexColumnWidth(1), 4: FlexColumnWidth(1)},
             children: [
               _headerRow(['Bowler', 'O', 'R', 'W', 'Econ']),
-              ...bowlerStats.entries.where((e) => (e.value['balls'] as int) > 0).map((e) {
+              ...bowlerStats.entries.where((e) => e.value.balls > 0).map((e) {
                 final p = bowlingTeam.players.firstWhere((x) => x.id == e.key, orElse: () => Player(id: '', name: '?'));
-                final balls = e.value['balls'] as int;
+                final balls = e.value.balls;
                 final overs = '${balls ~/ 6}.${balls % 6}';
-                final runs = e.value['runs'] as int;
-                final wkts = e.value['wickets'] as int;
+                final runs = e.value.runs;
+                final wkts = e.value.wickets;
                 final econ = balls > 0 ? (runs / (balls / 6)).toStringAsFixed(1) : '-';
                 return _dataRow([p.name, overs, '$runs', '$wkts', econ]);
               }),
@@ -218,10 +213,10 @@ class _InningsScorecardView extends StatelessWidget {
 
   TableRow _headerRow(List<String> cols) {
     return TableRow(
-      decoration: const BoxDecoration(color: kBgSurface),
+      decoration: const BoxDecoration(color: AppTheme.kBgSurface),
       children: cols.map((c) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4), 
-        child: Text(c, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: kGold)),
+        child: Text(c, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppTheme.kGold)),
       )).toList(),
     );
   }

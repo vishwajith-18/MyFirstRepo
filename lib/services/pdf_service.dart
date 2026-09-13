@@ -91,13 +91,13 @@ class PDFService {
     final List<List<String>> data = [];
     for (final p in battingTeam.players) {
       final s = stats[p.id]!;
-      final r = s['runs'] as int;
-      final balls = s['balls'] as int;
-      final fours = s['4s'] as int;
-      final sixes = s['6s'] as int;
-      if (balls == 0 && !(s['dismissed'] as bool)) continue; // Never faced a ball
+      final r = s.runs;
+      final balls = s.balls;
+      final fours = s.fours;
+      final sixes = s.sixes;
+      if (balls == 0 && !s.dismissed) continue; // Never faced a ball
       final sr = balls > 0 ? (r / balls * 100).toStringAsFixed(1) : '-';
-      final out = s['dismissed'] as bool ? getHowOutString(s, allTeams) : 'not out';
+      final out = s.dismissed ? getHowOutString(s, allTeams) : 'not out';
       data.add([p.name, '$r', '$balls', '$fours', '$sixes', sr, out]);
     }
 
@@ -128,14 +128,14 @@ class PDFService {
     final stats = innings.calculateBowlerStats(bowlingTeam);
 
     final List<List<String>> data = stats.entries
-        .where((e) => (e.value['balls'] as int) > 0)
+        .where((e) => e.value.balls > 0)
         .map((e) {
           final p = bowlingTeam.players.firstWhere((x) => x.id == e.key,
               orElse: () => Player(id: '', name: '?'));
-          final balls = e.value['balls'] as int;
+          final balls = e.value.balls;
           final overs = '${balls ~/ 6}.${balls % 6}';
-          final runs = e.value['runs'] as int;
-          final wkts = e.value['wickets'] as int;
+          final runs = e.value.runs;
+          final wkts = e.value.wickets;
           final econ = balls > 0 ? (runs / (balls / 6)).toStringAsFixed(1) : '-';
           return [p.name, overs, '$runs', '$wkts', econ];
         })

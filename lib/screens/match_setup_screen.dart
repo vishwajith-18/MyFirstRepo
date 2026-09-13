@@ -4,7 +4,8 @@ import '../providers/team_provider.dart';
 import '../providers/match_provider.dart';
 import '../models/match_model.dart';
 import 'scoring_screen.dart';
-import '../main.dart';
+import '../theme/app_theme.dart';
+
 import 'package:uuid/uuid.dart';
 
 class MatchSetupScreen extends ConsumerStatefulWidget {
@@ -41,7 +42,7 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
         title: const Text('Match Setup'),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: kGoldDark.withOpacity(0.3)),
+          child: Container(height: 1, color: AppTheme.kGoldDark.withOpacity(0.3)),
         ),
       ),
       body: SingleChildScrollView(
@@ -100,7 +101,7 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
               decoration: InputDecoration(
                 labelText: 'Number of Overs (1–50)',
                 errorText: (overs != null && (overs! < 1 || overs! > 50)) ? 'Must be 1–50' : null,
-                prefixIcon: const Icon(Icons.timer_outlined, color: kGold, size: 20),
+                prefixIcon: const Icon(Icons.timer_outlined, color: AppTheme.kGold, size: 20),
               ),
               style: const TextStyle(color: kTextPrimary),
               keyboardType: TextInputType.number,
@@ -118,8 +119,8 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
               child: Column(
                 children: [
                   SwitchListTile(
-                    title: const Text('⭐ Golden Over', style: TextStyle(color: kGold, fontWeight: FontWeight.bold)),
-                    subtitle: const Text('Doubled runs · Wicket penalties', style: TextStyle(color: kTextSecondary, fontSize: 12)),
+                    title: const Text('⭐ Golden Over', style: TextStyle(color: AppTheme.kGold, fontWeight: FontWeight.bold)),
+                    subtitle: const Text('Doubled runs · Wicket penalties', style: TextStyle(color: AppTheme.kTextSecondary, fontSize: 12)),
                     value: isGoldenOverEnabled,
                     onChanged: (v) => setState(() => isGoldenOverEnabled = v),
                     contentPadding: EdgeInsets.zero,
@@ -133,7 +134,7 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
                         errorText: (goldenOverNumber != null && overs != null && (goldenOverNumber! < 1 || goldenOverNumber! > overs!))
                             ? 'Must be 1–$overs'
                             : null,
-                        prefixIcon: const Icon(Icons.star_rounded, color: kGold, size: 20),
+                        prefixIcon: const Icon(Icons.star_rounded, color: AppTheme.kGold, size: 20),
                       ),
                       style: const TextStyle(color: kTextPrimary),
                       keyboardType: TextInputType.number,
@@ -170,14 +171,14 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
                 child: Container(
                   height: 56,
                   decoration: BoxDecoration(
-                    gradient: canStart ? const LinearGradient(colors: [kGoldDark, kGold]) : null,
-                    color: canStart ? null : kBgSurface,
+                    gradient: canStart ? const LinearGradient(colors: [AppTheme.kGoldDark, AppTheme.kGold]) : null,
+                    color: canStart ? null : AppTheme.kBgSurface,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Center(
                     child: Text(
                       'START SCORING',
-                      style: TextStyle(color: kBgBlack, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1),
+                      style: TextStyle(color: AppTheme.kBgBlack, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1),
                     ),
                   ),
                 ),
@@ -191,15 +192,15 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
 
   Widget _sectionLabel(String text) => Text(
     text,
-    style: const TextStyle(color: kGoldDark, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 2),
+    style: const TextStyle(color: AppTheme.kGoldDark, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 2),
   );
 
   Widget _goldCard({required Widget child}) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     decoration: BoxDecoration(
-      color: kBgCard,
+      color: AppTheme.kBgCard,
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: kGoldDark.withOpacity(0.3)),
+      border: Border.all(color: AppTheme.kGoldDark.withOpacity(0.3)),
     ),
     child: child,
   );
@@ -220,16 +221,16 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
         duration: const Duration(milliseconds: 200),
         height: 48,
         decoration: BoxDecoration(
-          gradient: selected ? const LinearGradient(colors: [kGoldDark, kGold]) : null,
-          color: selected ? null : kBgCard,
+          gradient: selected ? const LinearGradient(colors: [AppTheme.kGoldDark, AppTheme.kGold]) : null,
+          color: selected ? null : AppTheme.kBgCard,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: selected ? kGold : kGoldDark.withOpacity(0.3)),
+          border: Border.all(color: selected ? AppTheme.kGold : AppTheme.kGoldDark.withOpacity(0.3)),
         ),
         child: Center(
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? kBgBlack : kTextSecondary,
+              color: selected ? AppTheme.kBgBlack : AppTheme.kTextSecondary,
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),
@@ -244,9 +245,9 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
       value: value,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: const Icon(Icons.groups_rounded, color: kGold, size: 20),
+        prefixIcon: const Icon(Icons.groups_rounded, color: AppTheme.kGold, size: 20),
       ),
-      dropdownColor: kBgSurface,
+      dropdownColor: AppTheme.kBgSurface,
       style: const TextStyle(color: kTextPrimary),
       items: items,
       onChanged: onChanged,

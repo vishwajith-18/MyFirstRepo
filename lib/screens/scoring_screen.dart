@@ -4,12 +4,7 @@ import '../providers/match_provider.dart';
 import '../models/models.dart';
 import 'scorecard_screen.dart';
 
-const kGold       = Color(0xFFFFD700);
-const kGoldLight  = Color(0xFFFFE566);
-const kGoldDark   = Color(0xFFB8860B);
-const kBgBlack    = Color(0xFF0A0A0F);
-const kBgCard     = Color(0xFF13131A);
-const kBgSurface  = Color(0xFF1C1C28);
+import '../theme/app_theme.dart';
 
 class ScoringScreen extends ConsumerStatefulWidget {
   const ScoringScreen({super.key});
@@ -45,7 +40,7 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> with WidgetsBindi
 
     if (match == null) {
       return const Scaffold(
-        backgroundColor: kBgBlack,
+        backgroundColor: AppTheme.kBgBlack,
         body: Center(child: Text('No active match', style: TextStyle(color: Colors.white70))),
       );
     }
@@ -91,14 +86,14 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> with WidgetsBindi
         final String? action = await showDialog<String>(
           context: context,
           builder: (c) => AlertDialog(
-            backgroundColor: kBgSurface,
-            title: const Text('Exit scoring?', style: TextStyle(color: kGold, fontWeight: FontWeight.bold)),
+            backgroundColor: AppTheme.kBgSurface,
+            title: const Text('Exit scoring?', style: TextStyle(color: AppTheme.kGold, fontWeight: FontWeight.bold)),
             content: const Text('Save progress or discard this session?', style: TextStyle(color: Colors.white70)),
             actions: [
               TextButton(onPressed: () => Navigator.pop(c, 'cancel'), child: const Text('CANCEL', style: TextStyle(color: Colors.grey))),
               TextButton(onPressed: () => Navigator.pop(c, 'discard'), child: const Text('DISCARD', style: TextStyle(color: Colors.redAccent))),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: kGold, foregroundColor: kBgBlack),
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.kGold, foregroundColor: AppTheme.kBgBlack),
                 onPressed: () => Navigator.pop(c, 'save'), 
                 child: const Text('SAVE & EXIT', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
@@ -115,12 +110,12 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> with WidgetsBindi
         }
       },
       child: Scaffold(
-        backgroundColor: kBgBlack,
+        backgroundColor: AppTheme.kBgBlack,
         appBar: AppBar(
-          backgroundColor: kBgBlack,
+          backgroundColor: AppTheme.kBgBlack,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
-          title: Text('${battingTeam.name} Innings', style: const TextStyle(color: kGold, fontWeight: FontWeight.bold, fontSize: 17)),
+          title: Text('${battingTeam.name} Innings', style: const TextStyle(color: AppTheme.kGold, fontWeight: FontWeight.bold, fontSize: 17)),
           actions: [
             if (!state.isInnings1 && target != null)
               Padding(
@@ -132,12 +127,12 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> with WidgetsBindi
                     Text('Target: $target', style: const TextStyle(fontSize: 11, color: Colors.white60)),
                     if (runsNeeded != null && ballsRemaining != null)
                       Text(runsNeeded > 0 ? '$runsNeeded off $ballsRemaining' : 'Target reached!', 
-                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kGoldLight)),
+                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.kGoldLight)),
                   ],
                 ),
               ),
             IconButton(
-              icon: const Icon(Icons.undo, color: kGold),
+              icon: const Icon(Icons.undo, color: AppTheme.kGold),
               tooltip: 'Undo last ball',
               onPressed: () => ref.read(matchProvider.notifier).undo(),
             ),
@@ -149,7 +144,7 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> with WidgetsBindi
               if (isGolden)
                 Container(
                   width: double.infinity,
-                  color: kGoldDark,
+                  color: AppTheme.kGoldDark,
                   padding: const EdgeInsets.symmetric(vertical: 3),
                   child: const Text(
                     '⭐ GOLDEN OVER ACTIVE ⭐',
@@ -204,23 +199,20 @@ class ScoreboardView extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: kBgCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0x33FFD700), width: 1),
-        boxShadow: const [
-          BoxShadow(color: Color(0x1A000000), blurRadius: 8, offset: Offset(0, 2)),
-        ],
+        color: AppTheme.kBgCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0x22FFD700)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
-            crossAxisAlignment: CrossAlignment.baseline,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text('$runs', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: kGold)),
+              Text('$runs', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppTheme.kGold)),
               Text('/$wickets', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white70)),
             ],
           ),
@@ -229,7 +221,7 @@ class ScoreboardView extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('OVERS: $overs / $maxOvers', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
-              Text('CRR: ${runRate.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, color: kGoldLight, fontWeight: FontWeight.w600)),
+              Text('CRR: ${runRate.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, color: AppTheme.kGoldLight, fontWeight: FontWeight.w600)),
             ],
           ),
         ],
@@ -311,11 +303,11 @@ class CurrentOverTimeline extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: kBgSurface,
+                        color: AppTheme.kBgSurface,
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(color: const Color(0x33FFD700)),
                       ),
-                      child: Text('Ov $overNum', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kGold)),
+                      child: Text('Ov $overNum', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppTheme.kGold)),
                     ),
                     const SizedBox(width: 4),
                     ...overBalls.map((b) => _ballCircle(b)).toList(),
@@ -335,7 +327,7 @@ class CurrentOverTimeline extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: kGoldDark,
+                      color: AppTheme.kGoldDark,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text('Ov $ongoingOverNum', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.black)),
@@ -400,10 +392,10 @@ class PlayerSelectionView extends ConsumerWidget {
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       filled: true,
-      fillColor: kBgSurface,
+      fillColor: AppTheme.kBgSurface,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0x33FFD700))),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0x33FFD700))),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: kGold)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppTheme.kGold)),
       labelStyle: const TextStyle(color: Colors.white70, fontSize: 11),
     );
 
@@ -417,7 +409,7 @@ class PlayerSelectionView extends ConsumerWidget {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   value: currentStriker,
-                  dropdownColor: kBgSurface,
+                  dropdownColor: AppTheme.kBgSurface,
                   style: const TextStyle(color: Colors.white, fontSize: 12),
                   decoration: inputDecoration.copyWith(labelText: '🏏 Striker'),
                   items: [
@@ -433,7 +425,7 @@ class PlayerSelectionView extends ConsumerWidget {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: currentNonStriker,
-                    dropdownColor: kBgSurface,
+                    dropdownColor: AppTheme.kBgSurface,
                     style: const TextStyle(color: Colors.white, fontSize: 12),
                     decoration: inputDecoration.copyWith(labelText: '🏃 Non-Striker'),
                     items: [
@@ -448,8 +440,8 @@ class PlayerSelectionView extends ConsumerWidget {
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(color: kBgSurface, borderRadius: BorderRadius.circular(8), border: Border.all(color: kGold)),
-                    child: const Center(child: Text('SOLO BATTING', style: TextStyle(fontWeight: FontWeight.bold, color: kGold, fontSize: 11))),
+                    decoration: BoxDecoration(color: AppTheme.kBgSurface, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.kGold)),
+                    child: const Center(child: Text('SOLO BATTING', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.kGold, fontSize: 11))),
                   ),
                 ),
               ],
@@ -458,7 +450,7 @@ class PlayerSelectionView extends ConsumerWidget {
           const SizedBox(height: 6),
           DropdownButtonFormField<String>(
             value: currentBowler,
-            dropdownColor: kBgSurface,
+            dropdownColor: AppTheme.kBgSurface,
             style: const TextStyle(color: Colors.white, fontSize: 12),
             decoration: inputDecoration.copyWith(
               labelText: lastOverBowlerId.isNotEmpty ? '⚾ Bowler (Prev. bowler excluded)' : '⚾ Bowler',
@@ -500,7 +492,7 @@ class ScoringControlPanel extends ConsumerWidget {
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 2),
             child: Text('⚠️ Select Striker, Non-Striker & Bowler to start scoring', 
-              style: TextStyle(color: kGoldLight, fontSize: 11, fontWeight: FontWeight.w600)),
+              style: TextStyle(color: AppTheme.kGoldLight, fontSize: 11, fontWeight: FontWeight.w600)),
           ),
 
         // RUN BUTTONS (0 to 6)
@@ -568,7 +560,7 @@ class ScoringControlPanel extends ConsumerWidget {
     } else if (run == 6) {
       bg = const Color(0xFF6D28D9);
     } else if (run == 0) {
-      bg = kBgSurface;
+      bg = AppTheme.kBgSurface;
     } else {
       bg = const Color(0xFF0F766E);
     }
@@ -583,7 +575,7 @@ class ScoringControlPanel extends ConsumerWidget {
           elevation: isReady ? 3 : 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
-            side: BorderSide(color: isReady ? (run == 4 || run == 6 ? kGold : Colors.white24) : Colors.transparent),
+            side: BorderSide(color: isReady ? (run == 4 || run == 6 ? AppTheme.kGold : Colors.white24) : Colors.transparent),
           ),
         ),
         onPressed: isReady ? () => ref.read(matchProvider.notifier).recordBall(runs: run) : null,
@@ -592,7 +584,7 @@ class ScoringControlPanel extends ConsumerWidget {
           style: TextStyle(
             fontSize: 20, 
             fontWeight: FontWeight.w900, 
-            color: isReady ? (run == 4 || run == 6 ? kGoldLight : Colors.white) : Colors.white38
+            color: isReady ? (run == 4 || run == 6 ? AppTheme.kGoldLight : Colors.white) : Colors.white38
           ),
         ),
       ),
@@ -632,8 +624,8 @@ void showWidePopup(WidgetRef ref, BuildContext context) {
   showDialog(
     context: context,
     builder: (c) => AlertDialog(
-      backgroundColor: kBgSurface,
-      title: const Text('Wide! Extra runs?', style: TextStyle(color: kGold, fontWeight: FontWeight.bold)),
+      backgroundColor: AppTheme.kBgSurface,
+      title: const Text('Wide! Extra runs?', style: TextStyle(color: AppTheme.kGold, fontWeight: FontWeight.bold)),
       content: Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -641,7 +633,7 @@ void showWidePopup(WidgetRef ref, BuildContext context) {
           width: 54,
           height: 44,
           child: ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kGoldDark, foregroundColor: Colors.black),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.kGoldDark, foregroundColor: Colors.black),
             onPressed: () {
               ref.read(matchProvider.notifier).recordBall(runs: r, isWide: true);
               Navigator.pop(c);
@@ -658,8 +650,8 @@ void showNoBallPopup(WidgetRef ref, BuildContext context) {
   showDialog(
     context: context,
     builder: (c) => AlertDialog(
-      backgroundColor: kBgSurface,
-      title: const Text('No Ball! Runs scored?', style: TextStyle(color: kGold, fontWeight: FontWeight.bold)),
+      backgroundColor: AppTheme.kBgSurface,
+      title: const Text('No Ball! Runs scored?', style: TextStyle(color: AppTheme.kGold, fontWeight: FontWeight.bold)),
       content: Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -667,7 +659,7 @@ void showNoBallPopup(WidgetRef ref, BuildContext context) {
           width: 54,
           height: 44,
           child: ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kGoldDark, foregroundColor: Colors.black),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.kGoldDark, foregroundColor: Colors.black),
             onPressed: () {
               ref.read(matchProvider.notifier).recordBall(runs: r, isNoBall: true);
               Navigator.pop(c);
@@ -683,7 +675,7 @@ void showNoBallPopup(WidgetRef ref, BuildContext context) {
 void showWicketPopup(WidgetRef ref, BuildContext context, Team batting, Team bowling) {
   showModalBottomSheet(
     context: context,
-    backgroundColor: kBgSurface,
+    backgroundColor: AppTheme.kBgSurface,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     builder: (c) => _WicketSheet(
@@ -705,12 +697,12 @@ void checkForLastMan(WidgetRef ref, BuildContext context) {
       context: context,
       barrierDismissible: false,
       builder: (c) => AlertDialog(
-        backgroundColor: kBgSurface,
-        title: const Text('Last man continues?', style: TextStyle(color: kGold, fontWeight: FontWeight.bold)),
+        backgroundColor: AppTheme.kBgSurface,
+        title: const Text('Last man continues?', style: TextStyle(color: AppTheme.kGold, fontWeight: FontWeight.bold)),
         content: const Text('Only one batsman left. Continue solo?', style: TextStyle(color: Colors.white70)),
         actions: [
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kGold, foregroundColor: kBgBlack),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.kGold, foregroundColor: AppTheme.kBgBlack),
             onPressed: () {
               ref.read(matchProvider.notifier).setLastManSolo(true);
               Navigator.pop(c);
@@ -762,7 +754,7 @@ class _WicketSheetState extends ConsumerState<_WicketSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Select Wicket Type', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kGold)),
+            const Text('Select Wicket Type', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.kGold)),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -772,8 +764,8 @@ class _WicketSheetState extends ConsumerState<_WicketSheet> {
                 return ChoiceChip(
                   label: Text(type.name.toUpperCase(), style: TextStyle(color: isSel ? Colors.black : Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
                   selected: isSel,
-                  selectedColor: kGold,
-                  backgroundColor: kBgCard,
+                  selectedColor: AppTheme.kGold,
+                  backgroundColor: AppTheme.kBgCard,
                   onSelected: (v) => setState(() { selectedType = v ? type : null; catcherId = null; runOutFielderId = null; runOutPlayerId = null; }),
                 );
               }).toList(),
@@ -784,7 +776,7 @@ class _WicketSheetState extends ConsumerState<_WicketSheet> {
               const Text('Catcher (Optional)', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white70, fontSize: 12)),
               DropdownButtonFormField<String>(
                 value: catcherId,
-                dropdownColor: kBgCard,
+                dropdownColor: AppTheme.kBgCard,
                 style: const TextStyle(color: Colors.white, fontSize: 12),
                 hint: const Text('Select catcher (optional)', style: TextStyle(color: Colors.white38, fontSize: 12)),
                 items: widget.bowling.players.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
@@ -800,8 +792,8 @@ class _WicketSheetState extends ConsumerState<_WicketSheet> {
                 children: [0, 1, 2, 3].map((r) => ChoiceChip(
                   label: Text('$r'),
                   selected: runOutRuns == r,
-                  selectedColor: kGold,
-                  backgroundColor: kBgCard,
+                  selectedColor: AppTheme.kGold,
+                  backgroundColor: AppTheme.kBgCard,
                   labelStyle: TextStyle(color: runOutRuns == r ? Colors.black : Colors.white),
                   onSelected: (v) { if (v) setState(() => runOutRuns = r); },
                 )).toList(),
@@ -811,14 +803,14 @@ class _WicketSheetState extends ConsumerState<_WicketSheet> {
               RadioListTile<String>(
                 title: Text('Striker: ${striker.name}', style: const TextStyle(color: Colors.white, fontSize: 13)),
                 value: state.strikerId,
-                activeColor: kGold,
+                activeColor: AppTheme.kGold,
                 groupValue: runOutPlayerId,
                 onChanged: (v) => setState(() => runOutPlayerId = v),
               ),
               RadioListTile<String>(
                 title: Text('Non-Striker: ${nonStriker.name}', style: const TextStyle(color: Colors.white, fontSize: 13)),
                 value: state.nonStrikerId,
-                activeColor: kGold,
+                activeColor: AppTheme.kGold,
                 groupValue: runOutPlayerId,
                 onChanged: (v) => setState(() => runOutPlayerId = v),
               ),
@@ -826,7 +818,7 @@ class _WicketSheetState extends ConsumerState<_WicketSheet> {
               const Text('Fielder who ran out (Optional)', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white70, fontSize: 12)),
               DropdownButtonFormField<String>(
                 value: runOutFielderId,
-                dropdownColor: kBgCard,
+                dropdownColor: AppTheme.kBgCard,
                 style: const TextStyle(color: Colors.white, fontSize: 12),
                 hint: const Text('Select fielder (optional)', style: TextStyle(color: Colors.white38, fontSize: 12)),
                 items: widget.bowling.players.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
@@ -840,7 +832,7 @@ class _WicketSheetState extends ConsumerState<_WicketSheet> {
               height: 48,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: selectedType != null ? kGold : Colors.grey.shade800,
+                  backgroundColor: selectedType != null ? AppTheme.kGold : Colors.grey.shade800,
                   foregroundColor: Colors.black,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),

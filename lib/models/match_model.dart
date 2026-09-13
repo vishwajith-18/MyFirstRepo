@@ -1,6 +1,23 @@
 import 'dart:convert';
 import 'models.dart';
 
+class BatterStat {
+  int runs = 0;
+  int balls = 0;
+  int fours = 0;
+  int sixes = 0;
+  bool dismissed = false;
+  String howOut = '';
+  String bowlerId = '';
+  String fielderId = '';
+}
+
+class BowlerStat {
+  int balls = 0;
+  int runs = 0;
+  int wickets = 0;
+}
+
 class Innings {
   final List<Ball> balls;
   final int maxOvers;
@@ -15,58 +32,59 @@ class Innings {
   
   int get legalBalls => balls.where((b) => !b.isWide && !b.isNoBall).length;
 
-  Map<String, Map<String, dynamic>> calculateBatterStats(Team battingTeam) {
-    final Map<String, Map<String, dynamic>> stats = {};
+  Map<String, BatterStat> calculateBatterStats(Team battingTeam) {
+    final Map<String, BatterStat> stats = {};
     for (final p in battingTeam.players) {
-      stats[p.id] = {'runs': 0, 'balls': 0, '4s': 0, '6s': 0, 'dismissed': false, 'howOut': '', 'bowlerId': '', 'fielderId': ''};
+      stats[p.id] = BatterStat();
     }
 
     for (final b in balls) {
       if (!b.isWide && stats.containsKey(b.strikerId)) {
-        stats[b.strikerId]!['balls'] = (stats[b.strikerId]!['balls'] as int) + 1;
-        stats[b.strikerId]!['runs'] = (stats[b.strikerId]!['runs'] as int) + b.runs;
+        final st = stats[b.strikerId]!;
+        st.balls += 1;
+        st.runs += b.runs;
         
-        // Count 4s and 6s based on actual runs, even in golden over.
-        // During golden over, runs are doubled (4 becomes 8, 6 becomes 12)
         if (b.isGolden) {
-          if (b.runs == 8) stats[b.strikerId]!['4s'] = (stats[b.strikerId]!['4s'] as int) + 1;
-          if (b.runs == 12) stats[b.strikerId]!['6s'] = (stats[b.strikerId]!['6s'] as int) + 1;
+          if (b.runs == 8) st.fours += 1;
+          if (b.runs == 12) st.sixes += 1;
         } else {
-          if (b.runs == 4) stats[b.strikerId]!['4s'] = (stats[b.strikerId]!['4s'] as int) + 1;
-          if (b.runs == 6) stats[b.strikerId]!['6s'] = (stats[b.strikerId]!['6s'] as int) + 1;
+          if (b.runs == 4) st.fours += 1;
+          if (b.runs == 6) st.sixes += 1;
         }
       }
       if (b.wicket != null) {
         final outId = b.outPlayerId ?? b.strikerId;
         if (stats.containsKey(outId)) {
-          stats[outId]!['dismissed'] = true;
-          stats[outId]!['howOut'] = b.wicket!.name;
-          stats[outId]!['bowlerId'] = b.bowlerId;
-          stats[outId]!['fielderId'] = b.fielderId ?? '';
+          final st = stats[outId]!;
+          st.dismissed = true;
+          st.howOut = b.wicket!.name;
+          st.bowlerId = b.bowlerId;
+          st.fielderId = b.fielderId ?? '';
         }
       }
     }
     return stats;
   }
 
-  Map<String, Map<String, dynamic>> calculateBowlerStats(Team bowlingTeam) {
-    final Map<String, Map<String, dynamic>> stats = {};
+  Map<String, BowlerStat> calculateBowlerStats(Team bowlingTeam) {
+    final Map<String, BowlerStat> stats = {};
     for (final p in bowlingTeam.players) {
-      stats[p.id] = {'balls': 0, 'runs': 0, 'wickets': 0};
+      stats[p.id] = BowlerStat();
     }
     for (final b in balls) {
       if (stats.containsKey(b.bowlerId)) {
+        final st = stats[b.bowlerId]!;
         if (!b.isWide && !b.isNoBall) {
-          stats[b.bowlerId]!['balls'] = (stats[b.bowlerId]!['balls'] as int) + 1;
+          st.balls += 1;
         }
-        stats[b.bowlerId]!['runs'] = (stats[b.bowlerId]!['runs'] as int) + b.teamRuns;
+        st.runs += b.teamRuns;
         if (b.wicket != null && b.wicket != WicketType.runOut) {
-          stats[b.bowlerId]!['wickets'] = (stats[b.bowlerId]!['wickets'] as int) + 1;
+          st.wickets += 1;
         }
       }
     }
-    for (final bId in stats.keys) {
-      if ((stats[bId]!['runs'] as int) < 0) stats[bId]!['runs'] = 0;
+    for (final st in stats.values) {
+      if (st.runs < 0) st.runs = 0;
     }
     return stats;
   }
@@ -180,7 +198,7 @@ class Match {
   }
 }
 
-String getHowOutString(Map<String, dynamic> stat, List<Team> allTeams) {
+String getHowOutString(BatterStat stat, List<Team> allTeams) {
   Player? findPlayer(String id) {
     for (final t in allTeams) {
       for (final p in t.players) {
@@ -190,12 +208,12 @@ String getHowOutString(Map<String, dynamic> stat, List<Team> allTeams) {
     return null;
   }
 
-  final typeStr = stat['howOut'] as String;
+  final typeStr = stat.howOut;
   if (typeStr.isEmpty) return 'not out';
   final type = WicketType.values.byName(typeStr);
-  final bowler = findPlayer(stat['bowlerId'])?.name ?? '';
-  final fielder = (stat['fielderId'] as String).isNotEmpty 
-      ? (findPlayer(stat['fielderId'])?.name ?? '') 
+  final bowler = findPlayer(stat.bowlerId)?.name ?? '';
+  final fielder = stat.fielderId.isNotEmpty 
+      ? (findPlayer(stat.fielderId)?.name ?? '') 
       : '';
 
   if (type == WicketType.caught) return fielder.isNotEmpty ? 'c $fielder b $bowler' : 'c & b $bowler';

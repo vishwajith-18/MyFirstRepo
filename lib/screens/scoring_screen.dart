@@ -80,7 +80,7 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> with WidgetsBindi
     bool isGolden = match.isGoldenOverActive(legalBallsCount);
 
     return PopScope(
-      canPop: state.currentInningsBalls.isEmpty,
+      canPop: state.isInnings1 && state.currentInningsBalls.isEmpty,
       onPopInvoked: (didPop) async {
         if (didPop) return;
         final String? action = await showDialog<String>(
@@ -134,7 +134,7 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> with WidgetsBindi
             IconButton(
               icon: const Icon(Icons.undo, color: AppTheme.kGold),
               tooltip: 'Undo last ball',
-              onPressed: () => ref.read(matchProvider.notifier).undo(),
+              onPressed: () => handleUndo(ref, context),
             ),
           ],
         ),
@@ -531,13 +531,13 @@ class ScoringControlPanel extends ConsumerWidget {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(3.0),
-                  child: _actionButton('WIDE', const Color(0xFFD97706), isReady ? () => showWidePopup(ref, context) : null),
+                  child: _actionButton('WIDE', const Color(0xFFD97706), isReady ? () => showWidePopup(ref, context, battingTeam, bowlingTeam) : null),
                 ),
               ),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(3.0),
-                  child: _actionButton('NO BALL', const Color(0xFFEA580C), isReady ? () => showNoBallPopup(ref, context) : null),
+                  child: _actionButton('NO BALL', const Color(0xFFEA580C), isReady ? () => showNoBallPopup(ref, context, battingTeam, bowlingTeam) : null),
                 ),
               ),
               Expanded(
@@ -620,65 +620,122 @@ class ScoringControlPanel extends ConsumerWidget {
   }
 }
 
-void showWidePopup(WidgetRef ref, BuildContext context) {
+void handleUndo(WidgetRef ref, BuildContext context) async {
+  final notifier = ref.read(matchProvider.notifier);
+  if (notifier.wouldUndoCrossInnings()) {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        backgroundColor: AppTheme.kBgSurface,
+        title: const Text('Undo to previous innings?', style: TextStyle(color: AppTheme.kGold, fontWeight: FontWeight.bold)),
+        content: const Text(
+          'This will undo the last ball of the previous innings, reopening it for scoring. Continue?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('CANCEL', style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.kGold, foregroundColor: AppTheme.kBgBlack),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('UNDO', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+  }
+  await notifier.undo();
+}
+
+void showWidePopup(WidgetRef ref, BuildContext context, Team battingTeam, Team bowlingTeam) {
   showDialog(
     context: context,
     builder: (c) => AlertDialog(
       backgroundColor: AppTheme.kBgSurface,
       title: const Text('Wide! Extra runs?', style: TextStyle(color: AppTheme.kGold, fontWeight: FontWeight.bold)),
-      content: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [0, 1, 2, 3, 4].map((r) => SizedBox(
-          width: 54,
-          height: 44,
-          child: ElevatedButton(
-            onPressed: () {
-              ref.read(matchProvider.notifier).recordBall(runs: r, isWide: true);
-              Navigator.pop(c);
-            },
-            child: Text(r == 0 ? '0' : '+$r', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [0, 1, 2, 3, 4].map((r) => SizedBox(
+              width: 54,
+              height: 44,
+              child: ElevatedButton(
+                onPressed: () {
+                  ref.read(matchProvider.notifier).recordBall(runs: r, isWide: true);
+                  Navigator.pop(c);
+                },
+                child: Text(r == 0 ? '0' : '+$r', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              ),
+            )).toList(),
           ),
-        )).toList(),
+          const SizedBox(height: 12),
+          TextButton.icon(
+            onPressed: () {
+              Navigator.pop(c);
+              showWicketPopup(ref, context, battingTeam, bowlingTeam, isWide: true);
+            },
+            icon: const Icon(Icons.dangerous, color: Colors.redAccent, size: 18),
+            label: const Text('Wicket on this Wide', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     ),
   );
 }
 
-void showNoBallPopup(WidgetRef ref, BuildContext context) {
+void showNoBallPopup(WidgetRef ref, BuildContext context, Team battingTeam, Team bowlingTeam) {
   showDialog(
     context: context,
     builder: (c) => AlertDialog(
       backgroundColor: AppTheme.kBgSurface,
       title: const Text('No Ball! Runs scored?', style: TextStyle(color: AppTheme.kGold, fontWeight: FontWeight.bold)),
-      content: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [0, 1, 2, 4, 6].map((r) => SizedBox(
-          width: 54,
-          height: 44,
-          child: ElevatedButton(
-            onPressed: () {
-              ref.read(matchProvider.notifier).recordBall(runs: r, isNoBall: true);
-              Navigator.pop(c);
-            },
-            child: Text('$r', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [0, 1, 2, 4, 6].map((r) => SizedBox(
+              width: 54,
+              height: 44,
+              child: ElevatedButton(
+                onPressed: () {
+                  ref.read(matchProvider.notifier).recordBall(runs: r, isNoBall: true);
+                  Navigator.pop(c);
+                },
+                child: Text('$r', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              ),
+            )).toList(),
           ),
-        )).toList(),
+          const SizedBox(height: 12),
+          TextButton.icon(
+            onPressed: () {
+              Navigator.pop(c);
+              showWicketPopup(ref, context, battingTeam, bowlingTeam, isNoBall: true);
+            },
+            icon: const Icon(Icons.dangerous, color: Colors.redAccent, size: 18),
+            label: const Text('Run Out on this No Ball', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     ),
   );
 }
 
-void showWicketPopup(WidgetRef ref, BuildContext context, Team batting, Team bowling) {
+void showWicketPopup(WidgetRef ref, BuildContext context, Team batting, Team bowling, {bool isWide = false, bool isNoBall = false}) {
   showModalBottomSheet(
     context: context,
     backgroundColor: AppTheme.kBgSurface,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     builder: (c) => _WicketSheet(
-      batting: batting, 
+      batting: batting,
       bowling: bowling,
+      isWide: isWide,
+      isNoBall: isNoBall,
       onWicketConfirmed: () => checkForLastMan(ref, context),
     ),
   );
@@ -725,8 +782,16 @@ void checkForLastMan(WidgetRef ref, BuildContext context) {
 class _WicketSheet extends ConsumerStatefulWidget {
   final Team batting;
   final Team bowling;
+  final bool isWide;
+  final bool isNoBall;
   final VoidCallback onWicketConfirmed;
-  const _WicketSheet({required this.batting, required this.bowling, required this.onWicketConfirmed});
+  const _WicketSheet({
+    required this.batting,
+    required this.bowling,
+    this.isWide = false,
+    this.isNoBall = false,
+    required this.onWicketConfirmed,
+  });
 
   @override
   ConsumerState<_WicketSheet> createState() => _WicketSheetState();
@@ -745,6 +810,13 @@ class _WicketSheetState extends ConsumerState<_WicketSheet> {
     final striker = widget.batting.players.firstWhere((p) => p.id == state.strikerId, orElse: () => Player(id: '', name: '?'));
     final nonStriker = widget.batting.players.firstWhere((p) => p.id == state.nonStrikerId, orElse: () => Player(id: '', name: '?'));
 
+    // Only dismissals that are legal for the delivery type being scored.
+    final availableTypes = widget.isWide
+        ? [WicketType.runOut, WicketType.stumped, WicketType.hitWicket]
+        : widget.isNoBall
+            ? [WicketType.runOut]
+            : [WicketType.bowled, WicketType.caught, WicketType.runOut, WicketType.stumped, WicketType.lbw, WicketType.hitWicket];
+
     return Padding(
       padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 20),
       child: SingleChildScrollView(
@@ -752,12 +824,19 @@ class _WicketSheetState extends ConsumerState<_WicketSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Select Wicket Type', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.kGold)),
+            Text(
+              widget.isWide
+                  ? 'Select Wicket Type (Wide)'
+                  : widget.isNoBall
+                      ? 'Select Wicket Type (No Ball)'
+                      : 'Select Wicket Type',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.kGold),
+            ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: [WicketType.bowled, WicketType.caught, WicketType.runOut, WicketType.stumped, WicketType.lbw, WicketType.hitWicket].map((type) {
+              children: availableTypes.map((type) {
                 final isSel = selectedType == type;
                 return ChoiceChip(
                   label: Text(type.name.toUpperCase(), style: TextStyle(color: isSel ? Colors.black : Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
@@ -837,11 +916,18 @@ class _WicketSheetState extends ConsumerState<_WicketSheet> {
                 onPressed: selectedType == null ? null : () {
                   final notifier = ref.read(matchProvider.notifier);
                   if (selectedType == WicketType.runOut) {
-                    notifier.recordBall(runs: runOutRuns, wicket: WicketType.runOut, fielderId: runOutFielderId, outPlayerId: runOutPlayerId);
+                    notifier.recordBall(
+                      runs: runOutRuns,
+                      wicket: WicketType.runOut,
+                      fielderId: runOutFielderId,
+                      outPlayerId: runOutPlayerId,
+                      isWide: widget.isWide,
+                      isNoBall: widget.isNoBall,
+                    );
                   } else if (selectedType == WicketType.caught) {
-                    notifier.recordBall(runs: 0, wicket: WicketType.caught, fielderId: catcherId);
+                    notifier.recordBall(runs: 0, wicket: WicketType.caught, fielderId: catcherId, isWide: widget.isWide, isNoBall: widget.isNoBall);
                   } else {
-                    notifier.recordBall(runs: 0, wicket: selectedType!);
+                    notifier.recordBall(runs: 0, wicket: selectedType!, isWide: widget.isWide, isNoBall: widget.isNoBall);
                   }
                   Navigator.pop(context);
                   widget.onWicketConfirmed();

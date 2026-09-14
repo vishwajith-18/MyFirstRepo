@@ -152,10 +152,14 @@ class MatchNotifier extends StateNotifier<MatchState> {
         ballScoreForTeam = 2 + (-5) + (runs * 2); 
         timelineLabel = "Wd+GO:W(-3)";
       } else if (wicket != null && wicket == WicketType.runOut) {
-        // Run out in Golden Over: -5 team runs, PLUS doubled completed runs
-        finalRuns = -5; 
-        ballScoreForTeam = -5 + (runs * 2);
-        timelineLabel = "GO:W-5${runs > 0 ? '+${runs * 2}' : ''}";
+        // Run out in Golden Over: -5 team runs, PLUS doubled completed runs.
+        // A run out on a no-ball additionally concedes the doubled no-ball penalty (+2).
+        final noBallPenalty = isNoBall ? 2 : 0;
+        finalRuns = -5;
+        ballScoreForTeam = -5 + noBallPenalty + (runs * 2);
+        timelineLabel = isNoBall
+            ? "GO:Nb+W-5${runs > 0 ? '+${runs * 2}' : ''}"
+            : "GO:W-5${runs > 0 ? '+${runs * 2}' : ''}";
       } else if (wicket != null) {
         // Wicket in Golden Over: -5 team runs, -5 batsman
         finalRuns = -5;
@@ -186,7 +190,9 @@ class MatchNotifier extends StateNotifier<MatchState> {
       }
       
       if (isNoBall) {
-        timelineLabel = runs > 0 ? "Nb$runs" : "Nb";
+        timelineLabel = wicket != null
+            ? (runs > 0 ? "Nb$runs+W" : "Nb+W")
+            : (runs > 0 ? "Nb$runs" : "Nb");
       } else if (isWide && wicket != null) {
         timelineLabel = runs > 0 ? "Wd+${runs}+W" : "Wd+W";
       } else if (isWide) {
@@ -275,35 +281,49 @@ class MatchNotifier extends StateNotifier<MatchState> {
   Future<void> endInnings() async {
     if (state.currentMatch == null) return;
 
+    final wasInnings1 = state.isInnings1;
+
     final finishedInnings = Innings(
       balls: state.currentInningsBalls,
       maxOvers: state.currentMatch!.maxOvers,
     );
 
     final updatedMatch = state.currentMatch!.copyWith(
-      innings1: state.isInnings1 ? finishedInnings : state.currentMatch!.innings1,
-      innings2: !state.isInnings1 ? finishedInnings : state.currentMatch!.innings2,
+      innings1: wasInnings1 ? finishedInnings : state.currentMatch!.innings1,
+      innings2: !wasInnings1 ? finishedInnings : state.currentMatch!.innings2,
     );
 
     state = state.copyWith(
       currentMatch: updatedMatch,
-      isMatchComplete: !state.isInnings1, // FINISH MATCH IF IT WAS INNINGS 2
-      isInnings1: false, 
-      currentInningsBalls: [], 
-      strikerId: '', 
-      nonStrikerId: '', 
+      isMatchComplete: !wasInnings1, // FINISH MATCH IF IT WAS INNINGS 2
+      isInnings1: false,
+      currentInningsBalls: [],
+      strikerId: '',
+      nonStrikerId: '',
       currentBowlerId: '',
       isLastManSolo: false,
     );
 
-    // Save to DB + enforce 10-match limit
-    await DatabaseService.instance.saveMatch(updatedMatch);
-    await DatabaseService.instance.enforceMatchHistoryLimit();
+    // Only persist to permanent match history once the match has actually
+    // finished (innings 2 just ended). Saving on innings-1-end would leave an
+    // unfinishable "ghost" match in history if the user later discards, and
+    // could evict a real completed match via the history limit.
+    if (!wasInnings1) {
+      await DatabaseService.instance.saveMatch(updatedMatch);
+      await DatabaseService.instance.enforceMatchHistoryLimit();
+    }
     await saveState();
   }
 
   void loadMatchForScorecard(Match match) {
     state = state.copyWith(currentMatch: match);
+  }
+
+  /// True when the next undo step would step back into an already-finished
+  /// (different) innings, rather than just undoing the last ball of the
+  /// current one.
+  bool wouldUndoCrossInnings() {
+    return state.history.isNotEmpty && state.history.last.isInnings1 != state.isInnings1;
   }
 
   Future<void> undo() async {
